@@ -1,6 +1,12 @@
 [package]
 name = "tydra"
+description = "Shortcut menu-based task runner, inspired by Emacs Hydra"
 version = "0.1.0"
 authors = ["Magnus Bergmark <magnus.bergmark@gmail.com>"]
 
 [dependencies]
+serde = "1.0.66"
+serde_yaml = "0.7.5"
+serde_derive = "1.0.66"
+structopt = "0.2.10"
+failure = "0.1.1"
