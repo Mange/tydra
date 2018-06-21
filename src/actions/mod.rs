@@ -2,6 +2,7 @@ mod rendering;
 mod validator;
 pub use self::validator::ValidationError;
 
+use super::Term;
 use failure::Error;
 use std::collections::BTreeMap;
 
@@ -129,10 +130,10 @@ impl Page {
 }
 
 impl Layout {
-    pub fn render(&self, page: &Page) -> Result<(), Error> {
+    pub fn render(&self, terminal: &mut Term, page: &Page) -> Result<(), Error> {
         match *self {
-            Layout::List => self::rendering::render_list(page),
-            Layout::Columns => self::rendering::render_columns(page),
+            Layout::List => self::rendering::render_list(terminal, page),
+            Layout::Columns => self::rendering::render_columns(terminal, page),
         }
     }
 }

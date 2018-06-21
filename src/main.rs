@@ -1,6 +1,7 @@
 extern crate failure;
 extern crate serde;
 extern crate serde_yaml;
+extern crate tui;
 
 #[macro_use]
 extern crate failure_derive;
@@ -13,9 +14,13 @@ extern crate structopt;
 
 mod actions;
 
-use actions::ActionFile;
+use actions::{ActionFile, Layout, Page};
 use failure::Error;
 use structopt::StructOpt;
+use tui::backend::AlternateScreenBackend;
+use tui::Terminal;
+
+type Term = Terminal<AlternateScreenBackend>;
 
 #[derive(Debug, StructOpt)]
 struct AppOptions {
@@ -53,12 +58,37 @@ fn load_actions(path: String) -> Result<ActionFile, Error> {
 }
 
 fn run_menu(actions: ActionFile) -> Result<(), Error> {
-    let current_page_name: String = "root".into();
-    let current_page = actions.get_page(&current_page_name);
-    let current_layout = current_page
-        .layout()
-        .or(actions.layout())
-        .unwrap_or_default();
+    let default_layout = actions.layout().unwrap_or_default();
+    let mut current_page = actions.get_page("root");
 
-    current_layout.render(current_page)
+    let backend = AlternateScreenBackend::new()?;
+    let mut terminal = Terminal::new(backend)?;
+    terminal.hide_cursor()?;
+
+    loop {
+        match render_menu(&mut terminal, current_page, default_layout) {
+            Ok(Some(next_page)) => current_page = next_page,
+            Ok(None) => break,
+            Err(error) => {
+                terminal.show_cursor().ok();
+                return Err(error);
+            }
+        }
+    }
+
+    std::thread::sleep(std::time::Duration::from_secs(5));
+    terminal.show_cursor().ok();
+    Ok(())
+}
+
+fn render_menu<'a>(
+    terminal: &mut Term,
+    page: &'a Page,
+    default_layout: Layout,
+) -> Result<Option<&'a Page>, Error> {
+    let current_layout = page.layout().unwrap_or(default_layout);
+
+    current_layout.render(terminal, page)?;
+
+    Ok(None)
 }
