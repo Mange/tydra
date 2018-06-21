@@ -1,0 +1,23 @@
+# This file contains two invalid page references.
+pages:
+  root:
+    groups:
+      - entries:
+          - shortcut: a
+            title: Working
+            return: root
+          - shortcut: b
+            title: Correct spelling
+            return: spelling_error
+          - shortcut: b
+            title: Wrong spelling
+            return: speling_error
+  spelling_error:
+    groups:
+      - entries:
+        - shortcut: a
+          title: Broken
+          return: does_not_exist
+        - shortcut: b
+          title: Quit
+          return: quit # This page name should always be accepted

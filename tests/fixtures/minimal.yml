@@ -1,0 +1,8 @@
+# This file contains two invalid page references.
+pages:
+  root:
+    groups:
+      - entries:
+          - shortcut: a
+            title: Working
+            return: quit

@@ -1,20 +1,27 @@
-use std::collections::HashMap;
+mod validator;
+pub use self::validator::ValidationError;
+
+use std::collections::BTreeMap;
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ActionFile {
-    #[serde(rename = "settings", default = "default_settings")]
+    #[serde(rename = "global", default = "default_settings")]
     global_settings: Settings,
-    pages: HashMap<String, Page>,
+    pages: BTreeMap<String, Page>, // BTreeMap so order is preserved; helps with validation logic, etc.
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Settings {
     layout: Option<Layout>,
     color: Option<Color>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Page {
+    #[serde(default = "default_page_title")]
     title: String,
     header: Option<String>,
     footer: Option<String>,
@@ -23,6 +30,7 @@ pub struct Page {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Group {
     title: Option<String>,
     settings: Option<Settings>,
@@ -30,6 +38,7 @@ pub struct Group {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Entry {
     title: Option<String>,
     shortcut: char,
@@ -59,6 +68,10 @@ pub enum Color {
     Purple,
 }
 
+fn default_page_title() -> String {
+    String::from("Tydra")
+}
+
 fn default_command() -> String {
     String::from("/bin/true")
 }
@@ -82,14 +95,38 @@ impl Default for Color {
     }
 }
 
+impl ActionFile {
+    pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
+        self::validator::validate(self)
+    }
+
+    pub fn has_page(&self, page_name: &str) -> bool {
+        self.pages.contains_key(page_name)
+    }
+}
+
+impl Page {
+    pub fn all_entries(&self) -> impl Iterator<Item = &Entry> {
+        self.groups.iter().flat_map(|group| group.entries.iter())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     extern crate serde_yaml;
 
     #[test]
+    fn it_loads_minimal_yaml() {
+        let actions: ActionFile =
+            serde_yaml::from_str(include_str!("../../tests/fixtures/minimal.yml")).unwrap();
+        actions.validate().unwrap();
+    }
+
+    #[test]
     fn it_loads_complex_yaml() {
-        let _: ActionFile =
+        let actions: ActionFile =
             serde_yaml::from_str(include_str!("../../tests/fixtures/complex.yml")).unwrap();
+        actions.validate().unwrap();
     }
 }

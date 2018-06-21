@@ -3,6 +3,9 @@ extern crate serde;
 extern crate serde_yaml;
 
 #[macro_use]
+extern crate failure_derive;
+
+#[macro_use]
 extern crate serde_derive;
 
 #[macro_use]
@@ -27,6 +30,19 @@ struct AppOptions {
 fn main() {
     let options = AppOptions::from_args();
     let actions: ActionFile = load_actions(options.filename).expect("Failed to parse file");
+    match actions.validate() {
+        Ok(_) => {}
+        Err(errors) => {
+            eprintln!("Actions are invalid: {:#?}", errors);
+            std::process::exit(1);
+        }
+    }
+
+    if options.validate {
+        eprintln!("File is valid.");
+        std::process::exit(0);
+    }
+
     println!("{:#?}", actions);
 }
 
