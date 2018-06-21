@@ -1,6 +1,8 @@
+mod rendering;
 mod validator;
 pub use self::validator::ValidationError;
 
+use failure::Error;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Deserialize)]
@@ -40,7 +42,7 @@ pub struct Group {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Entry {
-    title: Option<String>,
+    title: String,
     shortcut: char,
     #[serde(default = "default_command")]
     command: String,
@@ -49,14 +51,14 @@ pub struct Entry {
     return_to: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum Layout {
     List,
     Columns,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum Color {
     Reset,
@@ -103,11 +105,35 @@ impl ActionFile {
     pub fn has_page(&self, page_name: &str) -> bool {
         self.pages.contains_key(page_name)
     }
+
+    pub fn get_page(&self, page_name: &str) -> &Page {
+        self.pages.get(page_name).unwrap()
+    }
+
+    pub fn layout(&self) -> Option<Layout> {
+        self.global_settings.layout
+    }
 }
 
 impl Page {
     pub fn all_entries(&self) -> impl Iterator<Item = &Entry> {
         self.groups.iter().flat_map(|group| group.entries.iter())
+    }
+
+    pub fn layout(&self) -> Option<Layout> {
+        match self.settings {
+            Some(ref settings) => settings.layout,
+            None => None,
+        }
+    }
+}
+
+impl Layout {
+    pub fn render(&self, page: &Page) -> Result<(), Error> {
+        match *self {
+            Layout::List => self::rendering::render_list(page),
+            Layout::Columns => self::rendering::render_columns(page),
+        }
     }
 }
 

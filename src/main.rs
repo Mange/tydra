@@ -43,11 +43,22 @@ fn main() {
         std::process::exit(0);
     }
 
-    println!("{:#?}", actions);
+    run_menu(actions).unwrap();
 }
 
 fn load_actions(path: String) -> Result<ActionFile, Error> {
     std::fs::read_to_string(path)
         .map_err(|e| Error::from(e))
         .and_then(|data| serde_yaml::from_str(&data).map_err(|e| Error::from(e)))
+}
+
+fn run_menu(actions: ActionFile) -> Result<(), Error> {
+    let current_page_name: String = "root".into();
+    let current_page = actions.get_page(&current_page_name);
+    let current_layout = current_page
+        .layout()
+        .or(actions.layout())
+        .unwrap_or_default();
+
+    current_layout.render(current_page)
 }
