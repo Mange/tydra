@@ -25,7 +25,7 @@ Define your action file and run tydra with it as your first argument.
 # individually if they so wish.
 global:
   layout: columns # Render entries in columns
-  color: red # Show shortcut letter in red
+  shortcut_color: red # Show shortcut letter in red
 pages:
   # tydra always start on the "root" page by default:
   root:
@@ -62,7 +62,7 @@ pages:
             command: "tydra --help | less"
             return: root # Return to the root page after the command has finished.
           - shortcut: p
-            color: blue
+            shortcut_color: blue
             title: Packages
             # command: /bin/true # Default when no command is given.
             return: packages # Go to the packages page
@@ -89,7 +89,7 @@ pages:
           command: "sudo pacman -Su"
           return: packages
       - settings:
-          color: blue
+          shortcut_color: blue
         entries:
         - shortcut: q
           title: Go back

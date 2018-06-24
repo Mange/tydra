@@ -1,10 +1,14 @@
-use actions::{Entry, Group, Page};
+use actions::{Entry, Group, Page, SettingsAccumulator};
 use failure::Error;
 use tui::layout::{self, Direction, Rect, Size};
 use tui::widgets::{Paragraph, Widget};
 use Term;
 
-pub fn render_list_layout(term: &mut Term, page: &Page) -> Result<(), Error> {
+pub fn render_list_layout(
+    term: &mut Term,
+    page: &Page,
+    settings: &SettingsAccumulator,
+) -> Result<(), Error> {
     let size = term.size()?;
     let max_width = size.width as usize;
 
@@ -12,6 +16,8 @@ pub fn render_list_layout(term: &mut Term, page: &Page) -> Result<(), Error> {
 
     text.push_str(&format!("== {} ==", page.title));
     for group in &page.groups {
+        let settings = settings.with_group(group);
+
         if let Some(ref title) = group.title {
             text.push_str(&format!("\n\n{}:\n", title));
         } else {
@@ -20,12 +26,12 @@ pub fn render_list_layout(term: &mut Term, page: &Page) -> Result<(), Error> {
 
         let mut current_line_length = 0;
         for entry in &group.entries {
-            let entry_text = render_entry(entry);
-            if current_line_length + entry_text.len() > max_width {
+            let entry_length = render_entry(entry).len();
+            if current_line_length + entry_length > max_width {
                 text.push('\n');
                 current_line_length = 0;
             }
-            text.push_str(&entry_text);
+            text.push_str(&render_entry_color(entry, &settings));
         }
     }
 
@@ -36,7 +42,11 @@ pub fn render_list_layout(term: &mut Term, page: &Page) -> Result<(), Error> {
     term.draw().map_err(|e| e.into())
 }
 
-pub fn render_columns_layout(term: &mut Term, page: &Page) -> Result<(), Error> {
+pub fn render_columns_layout(
+    term: &mut Term,
+    page: &Page,
+    settings: &SettingsAccumulator,
+) -> Result<(), Error> {
     let term_size = term.size()?;
     let width = term_size.width as usize;
     let column_widths: Vec<usize> = page.groups
@@ -54,14 +64,14 @@ pub fn render_columns_layout(term: &mut Term, page: &Page) -> Result<(), Error> 
     let required_width = column_widths.iter().sum();
 
     if width < required_width {
-        render_list_layout(term, page)
+        render_list_layout(term, page, settings)
     } else {
         layout::Group::default()
             .direction(Direction::Vertical)
             .sizes(&[Size::Fixed(1), Size::Min(10)])
             .render(term, &term_size, |t, chunks| {
                 render_columns_title(t, &chunks[0], &page.title, required_width);
-                render_columns(t, &chunks[1], &column_widths, &page.groups);
+                render_columns(t, &chunks[1], &column_widths, &page.groups, &settings);
             });
 
         term.draw().map_err(|e| e.into())
@@ -75,7 +85,13 @@ fn render_columns_title(term: &mut Term, rect: &Rect, title: &str, width: usize)
         .render(term, rect);
 }
 
-fn render_columns(term: &mut Term, rect: &Rect, column_widths: &[usize], groups: &[Group]) {
+fn render_columns(
+    term: &mut Term,
+    rect: &Rect,
+    column_widths: &[usize],
+    groups: &[Group],
+    settings: &SettingsAccumulator,
+) {
     assert!(column_widths.len() == groups.len());
 
     let sizes: Vec<Size> = column_widths
@@ -88,12 +104,13 @@ fn render_columns(term: &mut Term, rect: &Rect, column_widths: &[usize], groups:
         .sizes(&sizes)
         .render(term, rect, |t, chunks| {
             for (chunk, group) in chunks.into_iter().zip(groups.iter()) {
-                render_column(t, chunk, group);
+                render_column(t, chunk, group, &settings);
             }
         });
 }
 
-fn render_column(term: &mut Term, rect: &Rect, group: &Group) {
+fn render_column(term: &mut Term, rect: &Rect, group: &Group, settings: &SettingsAccumulator) {
+    let settings = settings.with_group(group);
     let mut text = String::new();
 
     if let Some(ref title) = group.title {
@@ -101,7 +118,7 @@ fn render_column(term: &mut Term, rect: &Rect, group: &Group) {
     }
 
     for entry in &group.entries {
-        text.push_str(&render_entry(entry));
+        text.push_str(&render_entry_color(entry, &settings));
         text.push('\n');
     }
 
@@ -113,4 +130,14 @@ fn render_column(term: &mut Term, rect: &Rect, group: &Group) {
 
 fn render_entry(entry: &Entry) -> String {
     format!("[{}] {} ", entry.shortcut(), entry.title())
+}
+
+fn render_entry_color(entry: &Entry, settings: &SettingsAccumulator) -> String {
+    let settings = settings.with_entry(entry);
+    format!(
+        "[{{fg={color} {shortcut}}}] {title} ",
+        shortcut = entry.shortcut(),
+        title = entry.title(),
+        color = settings.shortcut_color.markup_name()
+    )
 }

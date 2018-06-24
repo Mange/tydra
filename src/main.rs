@@ -17,7 +17,7 @@ extern crate structopt;
 
 mod actions;
 
-use actions::{Action, ActionFile, Layout, Page, Return};
+use actions::{Action, ActionFile, Page, Return, SettingsAccumulator};
 use failure::Error;
 use structopt::StructOpt;
 use termion::event;
@@ -83,13 +83,13 @@ fn stop_alternative_screen(mut terminal: Term) -> Result<(), Error> {
 }
 
 fn run_menu(actions: ActionFile) -> Result<(), Error> {
-    let default_layout = actions.layout().unwrap_or_default();
+    let settings = actions.settings_accumulator();
     let mut current_page = actions.get_page("root");
 
     let mut terminal = open_alternative_screen()?;
 
     loop {
-        render_menu(&mut terminal, current_page, default_layout)?;
+        render_menu(&mut terminal, current_page, &settings)?;
         let action = process_input(current_page)?;
         match action {
             Action::Exit => break,
@@ -116,11 +116,11 @@ fn run_menu(actions: ActionFile) -> Result<(), Error> {
 fn render_menu<'a>(
     terminal: &mut Term,
     page: &'a Page,
-    default_layout: Layout,
+    settings: &SettingsAccumulator,
 ) -> Result<(), Error> {
-    let current_layout = page.layout().unwrap_or(default_layout);
+    let settings = settings.with_page(&page);
 
-    current_layout.render(terminal, page)?;
+    settings.layout.render(terminal, page, &settings)?;
 
     Ok(())
 }

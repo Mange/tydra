@@ -11,16 +11,16 @@ const DEFAULT_COMMAND: &str = "/bin/true";
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActionFile {
-    #[serde(rename = "global", default = "default_settings")]
+    #[serde(rename = "global", default = "Settings::default")]
     global_settings: Settings,
     pages: BTreeMap<String, Page>, // BTreeMap so order is preserved; helps with validation logic, etc.
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Settings {
     layout: Option<Layout>,
-    color: Option<Color>,
+    shortcut_color: Option<Color>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,7 +49,7 @@ pub struct Entry {
     shortcut: char,
     #[serde(default = "default_command")]
     command: String,
-    color: Option<Color>,
+    shortcut_color: Option<Color>,
     #[serde(rename = "return")]
     return_to: Option<String>,
 }
@@ -65,12 +65,14 @@ pub enum Layout {
 #[serde(rename_all = "lowercase")]
 pub enum Color {
     Reset,
-    Red,
-    Green,
-    Yellow,
+    Black,
     Blue,
     Cyan,
-    Purple,
+    Green,
+    Magenta,
+    Red,
+    White,
+    Yellow,
 }
 
 #[derive(Debug)]
@@ -86,6 +88,21 @@ pub enum Return {
     Page(String),
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct SettingsAccumulator {
+    pub layout: Layout,
+    pub shortcut_color: Color,
+}
+
+impl<'a> From<&'a Settings> for SettingsAccumulator {
+    fn from(settings: &Settings) -> SettingsAccumulator {
+        SettingsAccumulator {
+            layout: settings.layout.unwrap_or_default(),
+            shortcut_color: settings.shortcut_color.unwrap_or_default(),
+        }
+    }
+}
+
 fn default_page_title() -> String {
     String::from("Tydra")
 }
@@ -94,10 +111,12 @@ fn default_command() -> String {
     String::from(DEFAULT_COMMAND)
 }
 
-fn default_settings() -> Settings {
-    Settings {
-        color: Some(Color::Red),
-        layout: Some(Layout::List),
+impl Default for Settings {
+    fn default() -> Settings {
+        Settings {
+            shortcut_color: Some(Color::Red),
+            layout: Some(Layout::default()),
+        }
     }
 }
 
@@ -110,6 +129,36 @@ impl Default for Layout {
 impl Default for Color {
     fn default() -> Color {
         Color::Reset
+    }
+}
+
+impl SettingsAccumulator {
+    pub fn with_settings(&self, settings: &Settings) -> SettingsAccumulator {
+        SettingsAccumulator {
+            layout: settings.layout.unwrap_or(self.layout),
+            shortcut_color: settings.shortcut_color.unwrap_or(self.shortcut_color),
+        }
+    }
+
+    pub fn with_page(&self, page: &Page) -> SettingsAccumulator {
+        match page.settings {
+            Some(ref settings) => self.with_settings(settings),
+            None => self.clone(),
+        }
+    }
+
+    pub fn with_group(&self, group: &Group) -> SettingsAccumulator {
+        match group.settings {
+            Some(ref settings) => self.with_settings(settings),
+            None => self.clone(),
+        }
+    }
+
+    pub fn with_entry(&self, entry: &Entry) -> SettingsAccumulator {
+        SettingsAccumulator {
+            layout: self.layout,
+            shortcut_color: entry.shortcut_color.unwrap_or(self.shortcut_color),
+        }
     }
 }
 
@@ -128,6 +177,21 @@ impl ActionFile {
 
     pub fn layout(&self) -> Option<Layout> {
         self.global_settings.layout
+    }
+
+    pub fn settings_accumulator(&self) -> SettingsAccumulator {
+        let settings = self.global_settings.clone();
+        let default_settings = Settings::default();
+        SettingsAccumulator {
+            layout: settings
+                .layout
+                .or(default_settings.layout)
+                .unwrap_or_default(),
+            shortcut_color: settings
+                .shortcut_color
+                .or(default_settings.shortcut_color)
+                .unwrap_or_default(),
+        }
     }
 }
 
@@ -155,6 +219,22 @@ impl Entry {
 
     pub fn title(&self) -> &str {
         &self.title
+    }
+}
+
+impl Color {
+    fn markup_name(&self) -> &'static str {
+        match *self {
+            Color::Reset => "reset",
+            Color::Black => "black",
+            Color::Blue => "blue",
+            Color::Cyan => "cyan",
+            Color::Green => "green",
+            Color::Magenta => "magenta",
+            Color::Red => "red",
+            Color::White => "white",
+            Color::Yellow => "yellow",
+        }
     }
 }
 
@@ -193,10 +273,15 @@ impl Default for Action {
 }
 
 impl Layout {
-    pub fn render(&self, terminal: &mut Term, page: &Page) -> Result<(), Error> {
+    pub fn render(
+        &self,
+        terminal: &mut Term,
+        page: &Page,
+        settings: &SettingsAccumulator,
+    ) -> Result<(), Error> {
         match *self {
-            Layout::List => self::rendering::render_list_layout(terminal, page),
-            Layout::Columns => self::rendering::render_columns_layout(terminal, page),
+            Layout::List => self::rendering::render_list_layout(terminal, page, settings),
+            Layout::Columns => self::rendering::render_columns_layout(terminal, page, settings),
         }
     }
 }
