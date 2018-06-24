@@ -7,6 +7,8 @@ pages:
   # tydra always start on the "root" page by default:
   root:
     title: Welcome
+    header: This is the default page.
+    footer: "You can always quit using {fg=blue Esc}."
     groups:
       - title: Web
         entries:
@@ -48,7 +50,7 @@ pages:
             return: quit # Return to "quit" to quit tydra
   packages:
     title: Packages
-    header: "Perform package operations. Go back with {{q}}"
+    header: "Perform package operations."
     settings:
       layout: list
     groups:

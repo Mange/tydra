@@ -14,7 +14,15 @@ pub fn render_list_layout(
 
     let mut text = String::new();
 
-    text.push_str(&format!("== {} ==", page.title));
+    text.push_str("== ");
+    text.push_str(&page.title);
+    text.push_str(" ==");
+
+    if let Some(ref header) = page.header {
+        text.push_str("\n");
+        text.push_str(header);
+    }
+
     for group in &page.groups {
         let settings = settings.with_group(group);
 
@@ -33,6 +41,11 @@ pub fn render_list_layout(
             }
             text.push_str(&render_entry_color(entry, &settings));
         }
+    }
+
+    if let Some(ref footer) = page.footer {
+        text.push_str("\n");
+        text.push_str(footer);
     }
 
     Paragraph::default()
@@ -66,16 +79,34 @@ pub fn render_columns_layout(
     if width < required_width {
         render_list_layout(term, page, settings)
     } else {
+        let header_lines = required_lines_option(&page.header, width);
+        let footer_lines = required_lines_option(&page.footer, width);
+
         layout::Group::default()
             .direction(Direction::Vertical)
-            .sizes(&[Size::Fixed(1), Size::Min(10)])
+            .sizes(&[
+                Size::Fixed(1),
+                Size::Fixed(header_lines as u16),
+                Size::Min(10),
+                Size::Fixed(footer_lines as u16),
+            ])
             .render(term, &term_size, |t, chunks| {
                 render_columns_title(t, &chunks[0], &page.title, required_width);
-                render_columns(t, &chunks[1], &column_widths, &page.groups, &settings);
+                if let Some(ref text) = page.header {
+                    render_columns_text(t, &chunks[1], &text);
+                }
+                render_columns(t, &chunks[2], &column_widths, &page.groups, &settings);
+                if let Some(ref text) = page.footer {
+                    render_columns_text(t, &chunks[3], &text);
+                }
             });
 
         term.draw().map_err(|e| e.into())
     }
+}
+
+fn render_columns_text(term: &mut Term, rect: &Rect, text: &str) {
+    Paragraph::default().text(&text).render(term, rect);
 }
 
 fn render_columns_title(term: &mut Term, rect: &Rect, title: &str, width: usize) {
@@ -129,15 +160,31 @@ fn render_column(term: &mut Term, rect: &Rect, group: &Group, settings: &Setting
 }
 
 fn render_entry(entry: &Entry) -> String {
-    format!("[{}] {} ", entry.shortcut(), entry.title())
+    format!("[{}] {}  ", entry.shortcut(), entry.title())
 }
 
 fn render_entry_color(entry: &Entry, settings: &SettingsAccumulator) -> String {
     let settings = settings.with_entry(entry);
     format!(
-        "[{{fg={color} {shortcut}}}] {title} ",
+        "[{{fg={color} {shortcut}}}] {title}  ",
         shortcut = entry.shortcut(),
         title = entry.title(),
         color = settings.shortcut_color.markup_name()
     )
+}
+
+fn required_lines_option(option: &Option<String>, max_width: usize) -> usize {
+    match option {
+        Some(ref string) => required_lines(string, max_width),
+        None => 0,
+    }
+}
+
+fn required_lines(string: &str, max_width: usize) -> usize {
+    // TODO: Do real calculation with word-wrap (instead of char-wrap), and markup strings removed.
+    // This is a very naive implementation right now.
+    string
+        .split('\n')
+        .map(|line| (line.len() / max_width) + 1)
+        .sum()
 }
