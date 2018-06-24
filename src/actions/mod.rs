@@ -6,6 +6,8 @@ use super::Term;
 use failure::Error;
 use std::collections::BTreeMap;
 
+const DEFAULT_COMMAND: &str = "/bin/true";
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActionFile {
@@ -71,12 +73,24 @@ pub enum Color {
     Purple,
 }
 
+#[derive(Debug)]
+pub enum Action {
+    Run { command: String, return_to: Return },
+    Exit,
+}
+
+#[derive(Debug)]
+pub enum Return {
+    Quit,
+    Page(String),
+}
+
 fn default_page_title() -> String {
     String::from("Tydra")
 }
 
 fn default_command() -> String {
-    String::from("/bin/true")
+    String::from(DEFAULT_COMMAND)
 }
 
 fn default_settings() -> Settings {
@@ -126,6 +140,44 @@ impl Page {
             Some(ref settings) => settings.layout,
             None => None,
         }
+    }
+}
+
+impl<'a> From<&'a Entry> for Action {
+    fn from(entry: &'a Entry) -> Action {
+        Action::run_command(entry.command.clone(), Return::from(entry))
+    }
+}
+
+impl<'a> From<&'a Entry> for Return {
+    fn from(entry: &'a Entry) -> Return {
+        match entry.return_to {
+            None => Return::Quit,
+            Some(ref page_name) if page_name == "quit" => Return::Quit,
+            Some(ref page_name) => Return::Page(page_name.clone()),
+        }
+    }
+}
+
+impl Action {
+    pub fn exit() -> Action {
+        Action::Exit
+    }
+
+    pub fn run_command<S>(command: S, return_to: Return) -> Action
+    where
+        S: Into<String>,
+    {
+        Action::Run {
+            command: command.into(),
+            return_to,
+        }
+    }
+}
+
+impl Default for Action {
+    fn default() -> Action {
+        Action::run_command(DEFAULT_COMMAND, Return::Quit)
     }
 }
 

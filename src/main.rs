@@ -1,6 +1,7 @@
 extern crate failure;
 extern crate serde;
 extern crate serde_yaml;
+extern crate termion;
 extern crate tui;
 
 #[macro_use]
@@ -14,9 +15,10 @@ extern crate structopt;
 
 mod actions;
 
-use actions::{ActionFile, Layout, Page};
+use actions::{Action, ActionFile, Layout, Page, Return};
 use failure::Error;
 use structopt::StructOpt;
+use termion::event;
 use tui::backend::AlternateScreenBackend;
 use tui::Terminal;
 
@@ -61,34 +63,66 @@ fn run_menu(actions: ActionFile) -> Result<(), Error> {
     let default_layout = actions.layout().unwrap_or_default();
     let mut current_page = actions.get_page("root");
 
-    let backend = AlternateScreenBackend::new()?;
-    let mut terminal = Terminal::new(backend)?;
-    terminal.hide_cursor()?;
-
+    // Render menu, wait for keypress and determine new action. Between all actions the terminal
+    // needs to be restored so the nested command output becomes visible.
     loop {
-        match render_menu(&mut terminal, current_page, default_layout) {
-            Ok(Some(next_page)) => current_page = next_page,
-            Ok(None) => break,
-            Err(error) => {
-                terminal.show_cursor().ok();
-                return Err(error);
+        let action = {
+            let backend = AlternateScreenBackend::new()?;
+            let mut terminal = Terminal::new(backend)?;
+            terminal.hide_cursor()?;
+
+            let action = match render_menu(&mut terminal, current_page, default_layout) {
+                Ok(action) => action,
+                Err(error) => {
+                    terminal.show_cursor().ok();
+                    return Err(error);
+                }
+            };
+
+            terminal.show_cursor().ok();
+            drop(terminal);
+            action
+        };
+
+        match action {
+            Action::Exit => return Ok(()),
+            Action::Run { command, return_to } => {
+                println!("Running command: {}", command);
+                run_command(&command)?;
+                match return_to {
+                    Return::Quit => return Ok(()),
+                    Return::Page(next_page) => current_page = actions.get_page(&next_page),
+                }
             }
         }
     }
-
-    std::thread::sleep(std::time::Duration::from_secs(5));
-    terminal.show_cursor().ok();
-    Ok(())
 }
 
 fn render_menu<'a>(
     terminal: &mut Term,
     page: &'a Page,
     default_layout: Layout,
-) -> Result<Option<&'a Page>, Error> {
+) -> Result<Action, Error> {
+    use termion::input::TermRead;
     let current_layout = page.layout().unwrap_or(default_layout);
+    let stdin = std::io::stdin();
 
+    terminal.clear()?;
     current_layout.render(terminal, page)?;
+    for evnt in stdin.keys().flat_map(Result::ok) {
+        match evnt {
+            event::Key::Esc => return Ok(Action::exit()),
+            _ => {}
+        }
+    }
 
-    Ok(None)
+    Ok(Action::default())
+}
+
+fn run_command(command: &str) -> Result<(), Error> {
+    use std::process::Command;
+
+    let _ = Command::new("/bin/sh").arg("-c").arg(&command).status()?;
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    Ok(())
 }

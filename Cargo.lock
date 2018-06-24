@@ -294,6 +294,7 @@ dependencies = [
  "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_yaml 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "termion 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tui 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
