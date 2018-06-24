@@ -99,3 +99,10 @@ pages:
 ```
 tydra /path/to/actions.yml
 ```
+
+## Still TODO
+
+- A way to dynamically generate pages.
+  - Run a command that generates JSON or YAML?
+
+- Configure keybindings.

@@ -136,6 +136,10 @@ impl Page {
         self.groups.iter().flat_map(|group| group.entries.iter())
     }
 
+    pub fn entry_with_shortcut(&self, shortcut: char) -> Option<&Entry> {
+        self.all_entries().find(|entry| entry.shortcut == shortcut)
+    }
+
     pub fn layout(&self) -> Option<Layout> {
         match self.settings {
             Some(ref settings) => settings.layout,

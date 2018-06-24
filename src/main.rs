@@ -1,8 +1,10 @@
-extern crate failure;
 extern crate serde;
 extern crate serde_yaml;
 extern crate termion;
 extern crate tui;
+
+#[macro_use]
+extern crate failure;
 
 #[macro_use]
 extern crate failure_derive;
@@ -88,7 +90,7 @@ fn run_menu(actions: ActionFile) -> Result<(), Error> {
 
     loop {
         render_menu(&mut terminal, current_page, default_layout)?;
-        let action = process_input(&actions, current_page)?;
+        let action = process_input(current_page)?;
         match action {
             Action::Exit => break,
             Action::Redraw => {
@@ -123,7 +125,7 @@ fn render_menu<'a>(
     Ok(())
 }
 
-fn process_input<'a>(_actions: &'a ActionFile, _page: &'a Page) -> Result<Action, Error> {
+fn process_input<'a>(page: &'a Page) -> Result<Action, Error> {
     use termion::input::TermRead;
     let stdin = std::io::stdin();
 
@@ -131,20 +133,21 @@ fn process_input<'a>(_actions: &'a ActionFile, _page: &'a Page) -> Result<Action
         match evnt {
             event::Key::Esc => return Ok(Action::Exit),
             event::Key::Ctrl('l') => return Ok(Action::Redraw),
-            event::Key::Char('\n') => {
-                return Ok(Action::run_command("echo hello world", Return::Quit))
-            } // As an example
+            event::Key::Char(c) => match page.entry_with_shortcut(c) {
+                Some(entry) => return Ok(entry.into()),
+                None => {}
+            },
             _ => {}
         }
     }
 
-    Ok(Action::Exit) // TODO
+    // stdin closed, or other state that makes stdin not produce any output anymore
+    Err(format_err!("stdin eof"))
 }
 
 fn run_command(command: &str) -> Result<(), Error> {
     use std::process::Command;
 
     let _ = Command::new("/bin/sh").arg("-c").arg(&command).status()?;
-    std::thread::sleep(std::time::Duration::from_secs(2));
     Ok(())
 }
