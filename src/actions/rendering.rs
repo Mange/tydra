@@ -40,6 +40,7 @@ pub fn render_list_layout(
                 current_line_length = 0;
             }
             text.push_str(&render_entry_color(entry, &settings));
+            current_line_length += entry_length;
         }
     }
 
@@ -49,7 +50,7 @@ pub fn render_list_layout(
     }
 
     Paragraph::default()
-        .wrap(false)
+        .wrap(true)
         .text(&text)
         .render(term, &size);
     term.draw().map_err(|e| e.into())
@@ -154,7 +155,7 @@ fn render_column(term: &mut Term, rect: &Rect, group: &Group, settings: &Setting
     }
 
     Paragraph::default()
-        .wrap(false)
+        .wrap(true)
         .text(&text)
         .render(term, rect);
 }
