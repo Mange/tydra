@@ -195,8 +195,8 @@ impl Default for Action {
 impl Layout {
     pub fn render(&self, terminal: &mut Term, page: &Page) -> Result<(), Error> {
         match *self {
-            Layout::List => self::rendering::render_list(terminal, page),
-            Layout::Columns => self::rendering::render_columns(terminal, page),
+            Layout::List => self::rendering::render_list_layout(terminal, page),
+            Layout::Columns => self::rendering::render_columns_layout(terminal, page),
         }
     }
 }
