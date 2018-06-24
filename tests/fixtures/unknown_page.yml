@@ -9,7 +9,7 @@ pages:
           - shortcut: b
             title: Correct spelling
             return: spelling_error
-          - shortcut: b
+          - shortcut: c
             title: Wrong spelling
             return: speling_error
   spelling_error:

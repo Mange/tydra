@@ -1,4 +1,5 @@
 use actions::ActionFile;
+use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Fail)]
 pub enum ValidationError {
@@ -8,6 +9,12 @@ pub enum ValidationError {
     EmptyPage { page_name: String },
     #[fail(display = "There is no root page. A root page must be specified.")]
     NoRoot,
+    #[fail(display = "Page {} has a duplicated shortcut: {} ({})", page_name, shortcut, title)]
+    DuplicatedShortcut {
+        page_name: String,
+        shortcut: char,
+        title: String,
+    },
 }
 
 pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
@@ -17,14 +24,25 @@ pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
         errors.push(ValidationError::NoRoot);
     }
 
-    for (name, page) in actions.pages.iter() {
+    for (page_name, page) in actions.pages.iter() {
+        let mut seen_shortcuts = HashSet::new();
+
         if page.all_entries().next().is_none() {
             errors.push(ValidationError::EmptyPage {
-                page_name: name.clone(),
+                page_name: page_name.clone(),
             });
         }
 
         for entry in page.all_entries() {
+            let shortcut = entry.shortcut();
+            if !seen_shortcuts.insert(shortcut) {
+                errors.push(ValidationError::DuplicatedShortcut {
+                    page_name: page_name.clone(),
+                    shortcut: shortcut,
+                    title: entry.title().into(),
+                });
+            }
+
             match entry.return_to.as_ref().map(String::as_ref) {
                 Some("quit") => {}
                 Some(page_name) if !actions.has_page(page_name) => {
@@ -114,5 +132,45 @@ pages:
 
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0], ValidationError::NoRoot);
+    }
+
+    #[test]
+    fn it_validates_duplicated_keys() {
+        let actions: ActionFile = serde_yaml::from_str(
+            r#"
+pages:
+  root:
+    groups:
+      - entries:
+          - shortcut: a
+            title: This is fine
+            return: quit
+      - entries:
+          - shortcut: b
+            title: This is fine
+            return: quit
+  bad_page:
+    groups:
+      - entries:
+          - shortcut: a
+            title: First one
+            return: quit
+      - entries:
+          - shortcut: a
+            title: Duplicated shortcut
+            return: quit"#,
+        ).unwrap();
+
+        let errors = actions.validate().unwrap_err();
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(
+            errors[0],
+            ValidationError::DuplicatedShortcut {
+                page_name: "bad_page".into(),
+                shortcut: 'a',
+                title: "Duplicated shortcut".into(),
+            }
+        );
     }
 }

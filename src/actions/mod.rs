@@ -144,6 +144,16 @@ impl Page {
     }
 }
 
+impl Entry {
+    pub fn shortcut(&self) -> char {
+        self.shortcut
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+}
+
 impl<'a> From<&'a Entry> for Action {
     fn from(entry: &'a Entry) -> Action {
         Action::run_command(entry.command.clone(), Return::from(entry))
