@@ -77,6 +77,7 @@ pub enum Color {
 pub enum Action {
     Run { command: String, return_to: Return },
     Exit,
+    Redraw,
 }
 
 #[derive(Debug)]
@@ -160,10 +161,6 @@ impl<'a> From<&'a Entry> for Return {
 }
 
 impl Action {
-    pub fn exit() -> Action {
-        Action::Exit
-    }
-
     pub fn run_command<S>(command: S, return_to: Return) -> Action
     where
         S: Into<String>,

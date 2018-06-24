@@ -50,7 +50,12 @@ fn main() {
         std::process::exit(0);
     }
 
-    run_menu(actions).unwrap();
+    run_menu(actions)
+        .map_err(|error| {
+            print!("{}", termion::cursor::Show);
+            error
+        })
+        .unwrap();
 }
 
 fn load_actions(path: String) -> Result<ActionFile, Error> {
@@ -59,64 +64,81 @@ fn load_actions(path: String) -> Result<ActionFile, Error> {
         .and_then(|data| serde_yaml::from_str(&data).map_err(|e| Error::from(e)))
 }
 
+fn open_alternative_screen() -> Result<Term, Error> {
+    let backend = AlternateScreenBackend::new()?;
+    let mut terminal = Terminal::new(backend)?;
+    terminal.hide_cursor()?;
+    terminal.clear()?;
+    Ok(terminal)
+}
+
+fn stop_alternative_screen(mut terminal: Term) -> Result<(), Error> {
+    terminal.show_cursor()?;
+    terminal.clear()?;
+    terminal.show_cursor()?;
+    drop(terminal);
+    Ok(())
+}
+
 fn run_menu(actions: ActionFile) -> Result<(), Error> {
     let default_layout = actions.layout().unwrap_or_default();
     let mut current_page = actions.get_page("root");
 
-    // Render menu, wait for keypress and determine new action. Between all actions the terminal
-    // needs to be restored so the nested command output becomes visible.
+    let mut terminal = open_alternative_screen()?;
+
     loop {
-        let action = {
-            let backend = AlternateScreenBackend::new()?;
-            let mut terminal = Terminal::new(backend)?;
-            terminal.hide_cursor()?;
-
-            let action = match render_menu(&mut terminal, current_page, default_layout) {
-                Ok(action) => action,
-                Err(error) => {
-                    terminal.show_cursor().ok();
-                    return Err(error);
-                }
-            };
-
-            terminal.show_cursor().ok();
-            drop(terminal);
-            action
-        };
-
+        render_menu(&mut terminal, current_page, default_layout)?;
+        let action = process_input(&actions, current_page)?;
         match action {
-            Action::Exit => return Ok(()),
+            Action::Exit => break,
+            Action::Redraw => {
+                stop_alternative_screen(terminal)?;
+                terminal = open_alternative_screen()?;
+            }
             Action::Run { command, return_to } => {
-                println!("Running command: {}", command);
+                stop_alternative_screen(terminal)?;
                 run_command(&command)?;
+                terminal = open_alternative_screen()?;
                 match return_to {
-                    Return::Quit => return Ok(()),
-                    Return::Page(next_page) => current_page = actions.get_page(&next_page),
+                    Return::Quit => break,
+                    Return::Page(page_name) => current_page = actions.get_page(&page_name),
                 }
             }
         }
     }
+
+    terminal.show_cursor()?;
+    Ok(())
 }
 
 fn render_menu<'a>(
     terminal: &mut Term,
     page: &'a Page,
     default_layout: Layout,
-) -> Result<Action, Error> {
-    use termion::input::TermRead;
+) -> Result<(), Error> {
     let current_layout = page.layout().unwrap_or(default_layout);
+
+    current_layout.render(terminal, page)?;
+
+    Ok(())
+}
+
+fn process_input<'a>(_actions: &'a ActionFile, _page: &'a Page) -> Result<Action, Error> {
+    use termion::input::TermRead;
     let stdin = std::io::stdin();
 
-    terminal.clear()?;
-    current_layout.render(terminal, page)?;
     for evnt in stdin.keys().flat_map(Result::ok) {
         match evnt {
-            event::Key::Esc => return Ok(Action::exit()),
+            event::Key::Esc => return Ok(Action::Exit),
+            event::Key::Ctrl('l') => return Ok(Action::Redraw),
+            event::Key::Char('\n') => {
+                return Ok(Action::run_command("echo hello world", Return::Quit))
+            } // As an example
             _ => {}
         }
     }
 
-    Ok(Action::default())
+    Ok(Action::Exit) // TODO
 }
 
 fn run_command(command: &str) -> Result<(), Error> {
