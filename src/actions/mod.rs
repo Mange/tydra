@@ -1,24 +1,17 @@
+mod action_file;
 mod group;
 mod page;
 mod rendering;
 mod validator;
+pub use self::action_file::ActionFile;
 pub use self::group::Group;
 pub use self::page::Page;
 pub use self::validator::ValidationError;
 
 use super::Term;
 use failure::Error;
-use std::collections::BTreeMap;
 
 const DEFAULT_COMMAND: &str = "/bin/true";
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ActionFile {
-    #[serde(rename = "global", default = "Settings::default")]
-    global_settings: Settings,
-    pages: BTreeMap<String, Page>, // BTreeMap so order is preserved; helps with validation logic, etc.
-}
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -143,35 +136,6 @@ impl SettingsAccumulator {
     }
 }
 
-impl ActionFile {
-    pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
-        self::validator::validate(self)
-    }
-
-    pub fn has_page(&self, page_name: &str) -> bool {
-        self.pages.contains_key(page_name)
-    }
-
-    pub fn get_page(&self, page_name: &str) -> &Page {
-        self.pages.get(page_name).unwrap()
-    }
-
-    pub fn settings_accumulator(&self) -> SettingsAccumulator {
-        let settings = self.global_settings.clone();
-        let default_settings = Settings::default();
-        SettingsAccumulator {
-            layout: settings
-                .layout
-                .or(default_settings.layout)
-                .unwrap_or_default(),
-            shortcut_color: settings
-                .shortcut_color
-                .or(default_settings.shortcut_color)
-                .unwrap_or_default(),
-        }
-    }
-}
-
 impl Entry {
     pub fn shortcut(&self) -> char {
         self.shortcut
@@ -243,25 +207,5 @@ impl Layout {
             Layout::List => self::rendering::render_list_layout(terminal, page, settings),
             Layout::Columns => self::rendering::render_columns_layout(terminal, page, settings),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    extern crate serde_yaml;
-
-    #[test]
-    fn it_loads_minimal_yaml() {
-        let actions: ActionFile =
-            serde_yaml::from_str(include_str!("../../tests/fixtures/minimal.yml")).unwrap();
-        actions.validate().unwrap();
-    }
-
-    #[test]
-    fn it_loads_complex_yaml() {
-        let actions: ActionFile =
-            serde_yaml::from_str(include_str!("../../tests/fixtures/complex.yml")).unwrap();
-        actions.validate().unwrap();
     }
 }

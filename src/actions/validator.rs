@@ -24,12 +24,12 @@ pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
         errors.push(ValidationError::NoRoot);
     }
 
-    for (page_name, page) in actions.pages.iter() {
+    for (page, page_name) in actions.pages_with_names() {
         let mut seen_shortcuts = HashSet::new();
 
         if page.all_entries().next().is_none() {
             errors.push(ValidationError::EmptyPage {
-                page_name: page_name.clone(),
+                page_name: page_name.to_owned(),
             });
         }
 
@@ -37,7 +37,7 @@ pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
             let shortcut = entry.shortcut();
             if !seen_shortcuts.insert(shortcut) {
                 errors.push(ValidationError::DuplicatedShortcut {
-                    page_name: page_name.clone(),
+                    page_name: page_name.to_owned(),
                     shortcut: shortcut,
                     title: entry.title().into(),
                 });
