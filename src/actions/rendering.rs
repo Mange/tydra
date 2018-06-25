@@ -26,14 +26,14 @@ pub fn render_list_layout(
     for group in page.groups() {
         let settings = settings.with_group(group);
 
-        if let Some(ref title) = group.title {
+        if let Some(title) = group.title() {
             text.push_str(&format!("\n\n{}:\n", title));
         } else {
             text.push_str(&format!("\n\n"));
         }
 
         let mut current_line_length = 0;
-        for entry in &group.entries {
+        for entry in group.entries() {
             let entry_length = render_entry(entry).len();
             if current_line_length + entry_length > max_width {
                 text.push('\n');
@@ -67,7 +67,7 @@ pub fn render_columns_layout(
         .iter()
         .map(|group| {
             group
-                .entries
+                .entries()
                 .iter()
                 .map(render_entry)
                 .map(|s| s.len())
@@ -145,11 +145,11 @@ fn render_column(term: &mut Term, rect: &Rect, group: &Group, settings: &Setting
     let settings = settings.with_group(group);
     let mut text = String::new();
 
-    if let Some(ref title) = group.title {
+    if let Some(title) = group.title() {
         text.push_str(&format!("{}:\n", title));
     }
 
-    for entry in &group.entries {
+    for entry in group.entries() {
         text.push_str(&render_entry_color(entry, &settings));
         text.push('\n');
     }

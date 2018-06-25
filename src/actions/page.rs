@@ -17,7 +17,7 @@ impl Page {
     }
 
     pub fn all_entries(&self) -> impl Iterator<Item = &Entry> {
-        self.groups.iter().flat_map(|group| group.entries.iter())
+        self.groups.iter().flat_map(|group| group.entries())
     }
 
     pub fn entry_with_shortcut(&self, shortcut: char) -> Option<&Entry> {

@@ -1,6 +1,8 @@
+mod group;
 mod page;
 mod rendering;
 mod validator;
+pub use self::group::Group;
 pub use self::page::Page;
 pub use self::validator::ValidationError;
 
@@ -23,14 +25,6 @@ pub struct ActionFile {
 pub struct Settings {
     layout: Option<Layout>,
     shortcut_color: Option<Color>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Group {
-    title: Option<String>,
-    settings: Option<Settings>,
-    entries: Vec<Entry>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -135,8 +129,8 @@ impl SettingsAccumulator {
     }
 
     pub fn with_group(&self, group: &Group) -> SettingsAccumulator {
-        match group.settings {
-            Some(ref settings) => self.with_settings(settings),
+        match group.settings() {
+            Some(settings) => self.with_settings(settings),
             None => self.clone(),
         }
     }
