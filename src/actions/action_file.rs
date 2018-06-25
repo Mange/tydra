@@ -27,18 +27,7 @@ impl ActionFile {
     }
 
     pub fn settings_accumulator(&self) -> SettingsAccumulator {
-        let settings = self.global_settings.clone();
-        let default_settings = Settings::default();
-        SettingsAccumulator {
-            layout: settings
-                .layout
-                .or(default_settings.layout)
-                .unwrap_or_default(),
-            shortcut_color: settings
-                .shortcut_color
-                .or(default_settings.shortcut_color)
-                .unwrap_or_default(),
-        }
+        SettingsAccumulator::from(&self.global_settings)
     }
 }
 

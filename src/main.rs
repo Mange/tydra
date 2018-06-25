@@ -17,7 +17,7 @@ extern crate structopt;
 
 mod actions;
 
-use actions::{Action, ActionFile, Page, Return, SettingsAccumulator};
+use actions::{render, Action, ActionFile, Page, Return, SettingsAccumulator};
 use failure::Error;
 use std::process::ExitStatus;
 use structopt::StructOpt;
@@ -142,9 +142,7 @@ fn render_menu<'a>(
 ) -> Result<(), Error> {
     let settings = settings.with_page(&page);
 
-    settings.layout.render(terminal, page, &settings)?;
-
-    Ok(())
+    render(terminal, page, &settings)
 }
 
 fn process_input<'a>(page: &'a Page) -> Result<Action, Error> {

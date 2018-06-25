@@ -1,8 +1,15 @@
-use actions::{Entry, Group, Page, SettingsAccumulator};
+use actions::{Entry, Group, Layout, Page, SettingsAccumulator};
 use failure::Error;
 use tui::layout::{self, Direction, Rect, Size};
 use tui::widgets::{Paragraph, Widget};
 use Term;
+
+pub fn render(term: &mut Term, page: &Page, settings: &SettingsAccumulator) -> Result<(), Error> {
+    match settings.layout() {
+        Layout::List => render_list_layout(term, page, settings),
+        Layout::Columns => render_columns_layout(term, page, settings),
+    }
+}
 
 pub fn render_list_layout(
     term: &mut Term,
