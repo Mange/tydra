@@ -1,4 +1,4 @@
-use actions::ActionFile;
+use actions::{ActionFile, Return};
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Fail)]
@@ -43,14 +43,12 @@ pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
                 });
             }
 
-            match entry.return_to.as_ref().map(String::as_ref) {
-                Some("quit") => {}
-                Some(page_name) if !actions.has_page(page_name) => {
+            if let Return::Page(page_name) = entry.return_to() {
+                if !actions.has_page(&page_name) {
                     errors.push(ValidationError::UnknownPage {
-                        page_name: page_name.into(),
+                        page_name: page_name,
                     });
                 }
-                _ => {}
             }
         }
     }

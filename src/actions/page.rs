@@ -21,7 +21,8 @@ impl Page {
     }
 
     pub fn entry_with_shortcut(&self, shortcut: char) -> Option<&Entry> {
-        self.all_entries().find(|entry| entry.shortcut == shortcut)
+        self.all_entries()
+            .find(|entry| entry.shortcut() == shortcut)
     }
 
     pub fn title(&self) -> &str {

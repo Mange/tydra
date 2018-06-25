@@ -68,7 +68,7 @@ impl SettingsAccumulator {
     pub fn with_entry(&self, entry: &Entry) -> SettingsAccumulator {
         SettingsAccumulator {
             layout: self.layout,
-            shortcut_color: entry.shortcut_color.unwrap_or(self.shortcut_color),
+            shortcut_color: entry.shortcut_color().unwrap_or(self.shortcut_color),
         }
     }
 
