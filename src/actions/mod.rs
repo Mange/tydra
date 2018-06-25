@@ -175,10 +175,6 @@ impl ActionFile {
         self.pages.get(page_name).unwrap()
     }
 
-    pub fn layout(&self) -> Option<Layout> {
-        self.global_settings.layout
-    }
-
     pub fn settings_accumulator(&self) -> SettingsAccumulator {
         let settings = self.global_settings.clone();
         let default_settings = Settings::default();
@@ -202,13 +198,6 @@ impl Page {
 
     pub fn entry_with_shortcut(&self, shortcut: char) -> Option<&Entry> {
         self.all_entries().find(|entry| entry.shortcut == shortcut)
-    }
-
-    pub fn layout(&self) -> Option<Layout> {
-        match self.settings {
-            Some(ref settings) => settings.layout,
-            None => None,
-        }
     }
 }
 
