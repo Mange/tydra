@@ -5,4 +5,3 @@ pages:
       - entries:
           - shortcut: a
             title: Working
-            return: quit

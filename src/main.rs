@@ -125,7 +125,8 @@ fn run_menu(actions: ActionFile, options: &AppOptions) -> Result<(), Error> {
                 terminal = open_alternate_screen()?;
                 match return_to {
                     Return::Quit => break,
-                    Return::Page(page_name) => current_page = actions.get_page(&page_name),
+                    Return::SamePage => continue,
+                    Return::OtherPage(page_name) => current_page = actions.get_page(&page_name),
                 }
             }
         }

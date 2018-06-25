@@ -43,10 +43,10 @@ pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
                 });
             }
 
-            if let Return::Page(page_name) = entry.return_to() {
-                if !actions.has_page(&page_name) {
+            if let Return::OtherPage(page_name) = entry.return_to() {
+                if !actions.has_page(page_name) {
                     errors.push(ValidationError::UnknownPage {
-                        page_name: page_name,
+                        page_name: page_name.clone(),
                     });
                 }
             }
@@ -96,7 +96,6 @@ pages:
       - entries:
           - shortcut: a
             title: Working
-            return: quit
   this_page_is_empty:
     groups:
         - entries: []"#,
@@ -122,8 +121,7 @@ pages:
     groups:
       - entries:
           - shortcut: a
-            title: Working
-            return: quit"#,
+            title: Working"#,
         ).unwrap();
 
         let errors = actions.validate().unwrap_err();
@@ -142,21 +140,17 @@ pages:
       - entries:
           - shortcut: a
             title: This is fine
-            return: quit
       - entries:
           - shortcut: b
             title: This is fine
-            return: quit
   bad_page:
     groups:
       - entries:
           - shortcut: a
             title: First one
-            return: quit
       - entries:
           - shortcut: a
-            title: Duplicated shortcut
-            return: quit"#,
+            title: Duplicated shortcut"#,
         ).unwrap();
 
         let errors = actions.validate().unwrap_err();
