@@ -82,11 +82,14 @@ pages:
           return: packages
         - shortcut: u
           title: Show packages that can be upgraded
-          command: "pacman -Qu"
+          command: "pacman -Qu | less -+F"
           return: packages
         - shortcut: U
           title: Install upgrades
-          command: "sudo pacman -Su"
+          command: |
+            sudo pacman -Su
+            echo "Press enter to continue"
+            read -r x
           return: packages
       - settings:
           shortcut_color: blue
