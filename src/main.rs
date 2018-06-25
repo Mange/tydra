@@ -19,6 +19,7 @@ mod actions;
 
 use actions::{Action, ActionFile, Page, Return, SettingsAccumulator};
 use failure::Error;
+use std::process::ExitStatus;
 use structopt::StructOpt;
 use termion::event;
 use tui::backend::AlternateScreenBackend;
@@ -34,11 +35,15 @@ struct AppOptions {
     /// Instead of showing the menu, validate the action file.
     #[structopt(long = "validate")]
     validate: bool,
+
+    /// When a command fails, ignore it and do not exit tydra.
+    #[structopt(long = "ignore-exit-status", short = "e")]
+    ignore_exit_status: bool,
 }
 
 fn main() {
     let options = AppOptions::from_args();
-    let actions: ActionFile = load_actions(options.filename).expect("Failed to parse file");
+    let actions: ActionFile = load_actions(&options.filename).expect("Failed to parse file");
     match actions.validate() {
         Ok(_) => {}
         Err(errors) => {
@@ -52,21 +57,19 @@ fn main() {
         std::process::exit(0);
     }
 
-    run_menu(actions)
-        .map_err(|error| {
-            print!("{}", termion::cursor::Show);
-            error
-        })
-        .unwrap();
+    if let Err(error) = run_menu(actions, &options) {
+        show_cursor();
+        eprintln!("Error: {}", error);
+    }
 }
 
-fn load_actions(path: String) -> Result<ActionFile, Error> {
+fn load_actions(path: &String) -> Result<ActionFile, Error> {
     std::fs::read_to_string(path)
         .map_err(|e| Error::from(e))
         .and_then(|data| serde_yaml::from_str(&data).map_err(|e| Error::from(e)))
 }
 
-fn open_alternative_screen() -> Result<Term, Error> {
+fn open_alternate_screen() -> Result<Term, Error> {
     let backend = AlternateScreenBackend::new()?;
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
@@ -74,19 +77,24 @@ fn open_alternative_screen() -> Result<Term, Error> {
     Ok(terminal)
 }
 
-fn stop_alternative_screen(mut terminal: Term) -> Result<(), Error> {
-    terminal.show_cursor()?;
-    terminal.clear()?;
-    terminal.show_cursor()?;
+fn stop_alternate_screen(terminal: Term) -> Result<(), Error> {
     drop(terminal);
+    show_cursor();
     Ok(())
 }
 
-fn run_menu(actions: ActionFile) -> Result<(), Error> {
+/// Show cursor without depending on a Terminal; useful since then it can be called just after
+/// dropping a Terminal to get out of AlternateScreenBackend.
+fn show_cursor() {
+    println!("{}", termion::cursor::Show);
+}
+
+fn run_menu(actions: ActionFile, options: &AppOptions) -> Result<(), Error> {
+    let ignore_exit_status = options.ignore_exit_status;
     let settings = actions.settings_accumulator();
     let mut current_page = actions.get_page("root");
 
-    let mut terminal = open_alternative_screen()?;
+    let mut terminal = open_alternate_screen()?;
 
     loop {
         render_menu(&mut terminal, current_page, &settings)?;
@@ -94,13 +102,27 @@ fn run_menu(actions: ActionFile) -> Result<(), Error> {
         match action {
             Action::Exit => break,
             Action::Redraw => {
-                stop_alternative_screen(terminal)?;
-                terminal = open_alternative_screen()?;
+                stop_alternate_screen(terminal)?;
+                terminal = open_alternate_screen()?;
             }
             Action::Run { command, return_to } => {
-                stop_alternative_screen(terminal)?;
-                run_command(&command)?;
-                terminal = open_alternative_screen()?;
+                stop_alternate_screen(terminal)?;
+                match run_command(&command) {
+                    Ok(exit_status) => {
+                        if exit_status.success() || ignore_exit_status {
+                            // Intentionally left blank
+                        } else {
+                            // Error, AND it should not be ignored
+                            return Err(format_err!(
+                                "Command exited with exit status {}: {}",
+                                exit_status.code().unwrap_or(1),
+                                command
+                            ));
+                        }
+                    }
+                    Err(err) => return Err(err),
+                }
+                terminal = open_alternate_screen()?;
                 match return_to {
                     Return::Quit => break,
                     Return::Page(page_name) => current_page = actions.get_page(&page_name),
@@ -145,9 +167,12 @@ fn process_input<'a>(page: &'a Page) -> Result<Action, Error> {
     Err(format_err!("stdin eof"))
 }
 
-fn run_command(command: &str) -> Result<(), Error> {
+fn run_command(command: &str) -> Result<ExitStatus, Error> {
     use std::process::Command;
 
-    let _ = Command::new("/bin/sh").arg("-c").arg(&command).status()?;
-    Ok(())
+    Command::new("/bin/sh")
+        .arg("-c")
+        .arg(&command)
+        .status()
+        .map_err(|e| e.into())
 }
