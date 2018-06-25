@@ -30,6 +30,8 @@ pages:
   # tydra always start on the "root" page by default:
   root:
     title: Welcome
+    header: This is the default page.
+    footer: "You can always quit using {fg=blue Esc}."
     groups:
       - title: Web
         entries:
@@ -60,7 +62,7 @@ pages:
           - shortcut: "?"
             title: Show tydra help
             command: "tydra --help | less"
-            return: root # Return to the root page after the command has finished.
+            return: true # Return to the same page after the command has finished.
           - shortcut: p
             shortcut_color: blue
             title: Packages
@@ -68,10 +70,10 @@ pages:
             return: packages # Go to the packages page
           - shortcut: q
             title: Quit
-            return: quit # Return to "quit" to quit tydra
+            return: false # This is default when not specified
   packages:
     title: Packages
-    header: "Perform package operations. Go back with {{q}}"
+    header: "Perform package operations."
     settings:
       layout: list
     groups:
@@ -79,18 +81,18 @@ pages:
         - shortcut: r
           title: Refresh package repos
           command: "sudo pacman -Sy"
-          return: packages
+          return: true
         - shortcut: u
           title: Show packages that can be upgraded
           command: "pacman -Qu | less -+F"
-          return: packages
+          return: true
         - shortcut: U
           title: Install upgrades
           command: |
             sudo pacman -Su
             echo "Press enter to continue"
             read -r x
-          return: packages
+          return: true
       - settings:
           shortcut_color: blue
         entries:
