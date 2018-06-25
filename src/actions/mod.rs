@@ -1,5 +1,7 @@
+mod page;
 mod rendering;
 mod validator;
+pub use self::page::Page;
 pub use self::validator::ValidationError;
 
 use super::Term;
@@ -21,17 +23,6 @@ pub struct ActionFile {
 pub struct Settings {
     layout: Option<Layout>,
     shortcut_color: Option<Color>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Page {
-    #[serde(default = "default_page_title")]
-    title: String,
-    header: Option<String>,
-    footer: Option<String>,
-    settings: Option<Settings>,
-    groups: Vec<Group>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -103,10 +94,6 @@ impl<'a> From<&'a Settings> for SettingsAccumulator {
     }
 }
 
-fn default_page_title() -> String {
-    String::from("Tydra")
-}
-
 fn default_command() -> String {
     String::from(DEFAULT_COMMAND)
 }
@@ -141,8 +128,8 @@ impl SettingsAccumulator {
     }
 
     pub fn with_page(&self, page: &Page) -> SettingsAccumulator {
-        match page.settings {
-            Some(ref settings) => self.with_settings(settings),
+        match page.settings() {
+            Some(settings) => self.with_settings(settings),
             None => self.clone(),
         }
     }
@@ -188,16 +175,6 @@ impl ActionFile {
                 .or(default_settings.shortcut_color)
                 .unwrap_or_default(),
         }
-    }
-}
-
-impl Page {
-    pub fn all_entries(&self) -> impl Iterator<Item = &Entry> {
-        self.groups.iter().flat_map(|group| group.entries.iter())
-    }
-
-    pub fn entry_with_shortcut(&self, shortcut: char) -> Option<&Entry> {
-        self.all_entries().find(|entry| entry.shortcut == shortcut)
     }
 }
 

@@ -15,15 +15,15 @@ pub fn render_list_layout(
     let mut text = String::new();
 
     text.push_str("== ");
-    text.push_str(&page.title);
+    text.push_str(page.title());
     text.push_str(" ==");
 
-    if let Some(ref header) = page.header {
+    if let Some(ref header) = page.header() {
         text.push_str("\n");
         text.push_str(header);
     }
 
-    for group in &page.groups {
+    for group in page.groups() {
         let settings = settings.with_group(group);
 
         if let Some(ref title) = group.title {
@@ -44,7 +44,7 @@ pub fn render_list_layout(
         }
     }
 
-    if let Some(ref footer) = page.footer {
+    if let Some(footer) = page.footer() {
         text.push_str("\n");
         text.push_str(footer);
     }
@@ -63,7 +63,7 @@ pub fn render_columns_layout(
 ) -> Result<(), Error> {
     let term_size = term.size()?;
     let width = term_size.width as usize;
-    let column_widths: Vec<usize> = page.groups
+    let column_widths: Vec<usize> = page.groups()
         .iter()
         .map(|group| {
             group
@@ -80,8 +80,8 @@ pub fn render_columns_layout(
     if width < required_width {
         render_list_layout(term, page, settings)
     } else {
-        let header_lines = required_lines_option(&page.header, width);
-        let footer_lines = required_lines_option(&page.footer, width);
+        let header_lines = required_lines_option(page.header(), width);
+        let footer_lines = required_lines_option(page.footer(), width);
 
         layout::Group::default()
             .direction(Direction::Vertical)
@@ -92,12 +92,12 @@ pub fn render_columns_layout(
                 Size::Fixed(footer_lines as u16),
             ])
             .render(term, &term_size, |t, chunks| {
-                render_columns_title(t, &chunks[0], &page.title, required_width);
-                if let Some(ref text) = page.header {
+                render_columns_title(t, &chunks[0], page.title(), required_width);
+                if let Some(text) = page.header() {
                     render_columns_text(t, &chunks[1], &text);
                 }
-                render_columns(t, &chunks[2], &column_widths, &page.groups, &settings);
-                if let Some(ref text) = page.footer {
+                render_columns(t, &chunks[2], &column_widths, page.groups(), &settings);
+                if let Some(text) = page.footer() {
                     render_columns_text(t, &chunks[3], &text);
                 }
             });
@@ -174,9 +174,9 @@ fn render_entry_color(entry: &Entry, settings: &SettingsAccumulator) -> String {
     )
 }
 
-fn required_lines_option(option: &Option<String>, max_width: usize) -> usize {
+fn required_lines_option(option: Option<&str>, max_width: usize) -> usize {
     match option {
-        Some(ref string) => required_lines(string, max_width),
+        Some(string) => required_lines(string, max_width),
         None => 0,
     }
 }
