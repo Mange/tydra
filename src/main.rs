@@ -141,8 +141,13 @@ fn run_menu(actions: ActionFile, options: &AppOptions) -> Result<(), Error> {
                 // If this returns, then it failed to exec the process
                 return Err(runner::run_exec(&command));
             }
-            Action::RunBackground { .. } => {
-                unimplemented!("Running in background is still not implemented")
+            Action::RunBackground { command, return_to } => {
+                runner::run_background(&command)?;
+                match return_to {
+                    Return::Quit => break,
+                    Return::SamePage => continue,
+                    Return::OtherPage(page_name) => current_page = actions.get_page(&page_name),
+                }
             }
         }
     }
