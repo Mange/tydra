@@ -14,15 +14,48 @@ pub struct Entry {
     #[serde(default = "Entry::default_command")]
     command: String,
     shortcut_color: Option<Color>,
+    #[serde(default)]
+    mode: Mode,
     #[serde(rename = "return", default)]
     return_to: Return,
 }
 
 #[derive(Debug)]
 pub enum Action {
-    Run { command: String, return_to: Return },
+    Run {
+        command: String,
+        return_to: Return,
+
+        /// For Mode::Wait commands
+        wait: bool,
+    },
+    RunExec {
+        command: String,
+    },
+    RunBackground {
+        command: String,
+        return_to: Return,
+    },
     Exit,
     Redraw,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
+    /// Normal operation; e.g. none of the other alternatives.
+    Normal,
+
+    /// Display a "Press enter to continue" prompt after the command has finished before
+    /// progressing. This lets the user read all the output before the next action takes place.
+    Wait,
+
+    /// Replace this process with the given command instead of just running it as a child process.
+    Exec,
+
+    /// Fork and exec the command with no terminal devices still attached. This is useful for
+    /// starting GUI programs.
+    Background,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,13 +85,41 @@ impl Entry {
     pub fn return_to(&self) -> &Return {
         &self.return_to
     }
+
+    pub fn mode(&self) -> Mode {
+        self.mode
+    }
 }
 
 impl<'a> From<&'a Entry> for Action {
     fn from(entry: &'a Entry) -> Action {
-        Action::Run {
-            command: entry.command.clone(),
-            return_to: entry.return_to.clone(),
+        let command = entry.command.clone();
+        match entry.mode {
+            Mode::Normal | Mode::Wait => Action::Run {
+                command: command,
+                return_to: entry.return_to.clone(),
+                wait: entry.mode.is_wait(),
+            },
+            Mode::Exec => Action::RunExec { command },
+            Mode::Background => Action::RunBackground {
+                command,
+                return_to: entry.return_to.clone(),
+            },
+        }
+    }
+}
+
+impl Default for Mode {
+    fn default() -> Mode {
+        Mode::Normal
+    }
+}
+
+impl Mode {
+    fn is_wait(&self) -> bool {
+        match *self {
+            Mode::Wait => true,
+            _ => false,
         }
     }
 }

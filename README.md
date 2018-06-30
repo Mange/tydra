@@ -38,24 +38,31 @@ pages:
           - shortcut: g
             title: Google
             command: "xdg-open https://www.google.com"
+            mode: background # Run command in background; ignore output and
+                             # return immediately after starting it.
           - shortcut: G
             title: Github
             command: "xdg-open https://www.github.com"
+            mode: background
           - shortcut: l
             title: Gitlab
             command: "xdg-open https://www.gitlab.com"
+            mode: background
 
       - title: Desktop
         entries:
           - shortcut: h
             title: Home
             command: "xdg-open ~"
+            mode: background
           - shortcut: d
             title: Downloads
             command: "xdg-open ~/Downloads"
+            mode: background
           - shortcut: D
             title: Desktop
             command: "xdg-open ~/Desktop"
+            mode: background
 
       - title: Misc
         entries:
@@ -88,12 +95,10 @@ pages:
           return: true
         - shortcut: U
           title: Install upgrades
-          command: |
-            sudo pacman -Su
-            echo "Press enter to continue"
-            read -r x
+          command: sudo pacman -Su
+          mode: wait # Wait for user to press enter before returning to menu
           return: true
-      - settings:
+      - settings: # Individual groups can also have other default settings
           shortcut_color: blue
         entries:
         - shortcut: q

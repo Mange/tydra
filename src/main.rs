@@ -16,10 +16,10 @@ extern crate serde_derive;
 extern crate structopt;
 
 mod actions;
+mod runner;
 
 use actions::{render, Action, ActionFile, Page, Return, SettingsAccumulator};
 use failure::Error;
-use std::process::ExitStatus;
 use structopt::StructOpt;
 use termion::event;
 use tui::backend::AlternateScreenBackend;
@@ -105,9 +105,13 @@ fn run_menu(actions: ActionFile, options: &AppOptions) -> Result<(), Error> {
                 stop_alternate_screen(terminal)?;
                 terminal = open_alternate_screen()?;
             }
-            Action::Run { command, return_to } => {
+            Action::Run {
+                command,
+                return_to,
+                wait,
+            } => {
                 stop_alternate_screen(terminal)?;
-                match run_command(&command) {
+                match runner::run_normal(&command) {
                     Ok(exit_status) => {
                         if exit_status.success() || ignore_exit_status {
                             // Intentionally left blank
@@ -122,12 +126,21 @@ fn run_menu(actions: ActionFile, options: &AppOptions) -> Result<(), Error> {
                     }
                     Err(err) => return Err(err),
                 }
+                if wait {
+                    wait_for_confirmation()?;
+                }
                 terminal = open_alternate_screen()?;
                 match return_to {
                     Return::Quit => break,
                     Return::SamePage => continue,
                     Return::OtherPage(page_name) => current_page = actions.get_page(&page_name),
                 }
+            }
+            Action::RunExec { .. } => {
+                unimplemented!("Replacing the process is still not implemented")
+            }
+            Action::RunBackground { .. } => {
+                unimplemented!("Running in background is still not implemented")
             }
         }
     }
@@ -166,12 +179,19 @@ fn process_input<'a>(page: &'a Page) -> Result<Action, Error> {
     Err(format_err!("stdin eof"))
 }
 
-fn run_command(command: &str) -> Result<ExitStatus, Error> {
-    use std::process::Command;
+fn wait_for_confirmation() -> Result<(), Error> {
+    use termion::input::TermRead;
+    let stdin = std::io::stdin();
 
-    Command::new("/bin/sh")
-        .arg("-c")
-        .arg(&command)
-        .status()
-        .map_err(|e| e.into())
+    println!("Press enter to continue... ");
+
+    for evnt in stdin.keys().flat_map(Result::ok) {
+        match evnt {
+            event::Key::Char('\n') | event::Key::Esc => return Ok(()),
+            _ => {}
+        }
+    }
+
+    // stdin closed, or other state that makes stdin not produce any output anymore
+    Err(format_err!("stdin eof"))
 }
