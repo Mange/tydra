@@ -136,8 +136,10 @@ fn run_menu(actions: ActionFile, options: &AppOptions) -> Result<(), Error> {
                     Return::OtherPage(page_name) => current_page = actions.get_page(&page_name),
                 }
             }
-            Action::RunExec { .. } => {
-                unimplemented!("Replacing the process is still not implemented")
+            Action::RunExec { command } => {
+                stop_alternate_screen(terminal)?;
+                // If this returns, then it failed to exec the process
+                return Err(runner::run_exec(&command));
             }
             Action::RunBackground { .. } => {
                 unimplemented!("Running in background is still not implemented")
