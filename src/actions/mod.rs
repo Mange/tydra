@@ -7,7 +7,7 @@ mod settings;
 mod validator;
 
 pub use self::action_file::ActionFile;
-pub use self::entry::{Action, Entry, Return};
+pub use self::entry::{Action, Entry, Mode, Return};
 pub use self::group::Group;
 pub use self::page::Page;
 pub use self::rendering::render;

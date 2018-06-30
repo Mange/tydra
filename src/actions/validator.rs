@@ -1,4 +1,4 @@
-use actions::{ActionFile, Return};
+use actions::{ActionFile, Entry, Mode, Return};
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Fail)]
@@ -15,6 +15,12 @@ pub enum ValidationError {
         shortcut: char,
         title: String,
     },
+    #[fail(
+        display = "Entry cannot return and exec at the same time; exec will replace tydra process (page {}, shortcut {}).",
+        page_name,
+        shortcut
+    )]
+    ExecWithReturn { page_name: String, shortcut: char },
 }
 
 pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
@@ -34,22 +40,9 @@ pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
         }
 
         for entry in page.all_entries() {
-            let shortcut = entry.shortcut();
-            if !seen_shortcuts.insert(shortcut) {
-                errors.push(ValidationError::DuplicatedShortcut {
-                    page_name: page_name.to_owned(),
-                    shortcut: shortcut,
-                    title: entry.title().into(),
-                });
-            }
-
-            if let Return::OtherPage(page_name) = entry.return_to() {
-                if !actions.has_page(page_name) {
-                    errors.push(ValidationError::UnknownPage {
-                        page_name: page_name.clone(),
-                    });
-                }
-            }
+            validate_shortcut_duplicates(&mut errors, entry, &mut seen_shortcuts, page_name);
+            validate_return_link(&mut errors, entry, actions);
+            validate_mode(&mut errors, entry, page_name);
         }
     }
 
@@ -57,6 +50,46 @@ pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
         Ok(())
     } else {
         Err(errors)
+    }
+}
+
+fn validate_shortcut_duplicates(
+    errors: &mut Vec<ValidationError>,
+    entry: &Entry,
+    seen_shortcuts: &mut HashSet<char>,
+    page_name: &str,
+) {
+    let shortcut = entry.shortcut();
+    if !seen_shortcuts.insert(shortcut) {
+        errors.push(ValidationError::DuplicatedShortcut {
+            page_name: page_name.to_owned(),
+            shortcut: shortcut,
+            title: entry.title().into(),
+        });
+    }
+}
+
+fn validate_return_link(errors: &mut Vec<ValidationError>, entry: &Entry, actions: &ActionFile) {
+    if let Return::OtherPage(page_name) = entry.return_to() {
+        if !actions.has_page(page_name) {
+            errors.push(ValidationError::UnknownPage {
+                page_name: page_name.clone(),
+            });
+        }
+    }
+}
+
+fn validate_mode(errors: &mut Vec<ValidationError>, entry: &Entry, page_name: &str) {
+    if entry.mode() == Mode::Exec {
+        match entry.return_to() {
+            Return::SamePage | Return::OtherPage(_) => {
+                errors.push(ValidationError::ExecWithReturn {
+                    page_name: page_name.to_owned(),
+                    shortcut: entry.shortcut(),
+                });
+            }
+            Return::Quit => {}
+        }
     }
 }
 
@@ -162,6 +195,46 @@ pages:
                 page_name: "bad_page".into(),
                 shortcut: 'a',
                 title: "Duplicated shortcut".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn it_validates_no_exec_with_return() {
+        let actions: ActionFile = serde_yaml::from_str(
+            r#"
+pages:
+  root:
+    groups:
+      - entries:
+          - shortcut: a
+            title: This is fine
+            mode: exec
+          - shortcut: b
+            title: This makes no sense
+            mode: exec
+            return: true
+          - shortcut: c
+            title: This neither
+            mode: exec
+            return: root"#,
+        ).unwrap();
+
+        let errors = actions.validate().unwrap_err();
+
+        assert_eq!(errors.len(), 2);
+        assert_eq!(
+            errors[0],
+            ValidationError::ExecWithReturn {
+                page_name: "root".into(),
+                shortcut: 'b',
+            }
+        );
+        assert_eq!(
+            errors[1],
+            ValidationError::ExecWithReturn {
+                page_name: "root".into(),
+                shortcut: 'c',
             }
         );
     }
