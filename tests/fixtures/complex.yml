@@ -10,28 +10,13 @@ pages:
     header: This is the default page.
     footer: "You can always quit using {fg=blue Esc}."
     groups:
-      - title: Web
-        entries:
-          - shortcut: g
-            title: Google
-            command: "xdg-open https://www.google.com"
-            mode: background # Run command in background; ignore output and
-                             # return immediately after starting it.
-          - shortcut: G
-            title: Github
-            command: "xdg-open https://www.github.com"
-            mode: background
-          - shortcut: l
-            title: Gitlab
-            command: "xdg-open https://www.gitlab.com"
-            mode: background
-
       - title: Desktop
         entries:
           - shortcut: h
             title: Home
             command: "xdg-open ~"
-            mode: background
+            mode: background # Run command in background; ignore output and
+                             # return immediately after starting it.
           - shortcut: d
             title: Downloads
             command: "xdg-open ~/Downloads"
@@ -39,6 +24,36 @@ pages:
           - shortcut: D
             title: Desktop
             command: "xdg-open ~/Desktop"
+            mode: background
+
+      - title: Web
+        entries:
+          - shortcut: g
+            title: Google
+            # Commands can also be given in a structured form instead of as a
+            # shell script. No shell-features (like $ENV subsititution,
+            # redirects, pipes, globbing, ~ expansion, etc.) work in here, but
+            # that also means that there is no need to escape arguments.
+            # It also means that when you need none of these shell features,
+            # then the command should have a faster startup.
+            command:
+              name: xdg-open
+              args:
+                - https://www.google.com
+            mode: background
+          - shortcut: G
+            title: Github
+            command:
+              name: xdg-open
+              args:
+                - https://www.github.com
+            mode: background
+          - shortcut: l
+            title: Gitlab
+            command:
+              name: xdg-open
+              args:
+                - https://www.gitlab.com
             mode: background
 
       - title: Misc

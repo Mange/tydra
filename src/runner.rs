@@ -1,28 +1,45 @@
 extern crate nix;
 
 use failure::Error;
-use std::process::{Command, ExitStatus, Stdio};
+use std::process;
+use std::process::{ExitStatus, Stdio};
+use actions::Command;
 
-pub fn run_normal(command: &str) -> Result<ExitStatus, Error> {
-    Command::new("/bin/sh")
-        .arg("-c")
-        .arg(&command)
+impl Command {
+    fn to_process_command(&self) -> process::Command {
+        match *self {
+            Command::ShellScript(ref script) => {
+                let mut command = process::Command::new("/bin/sh");
+                command
+                    .arg("-c")
+                    .arg(script);
+                command
+            }
+            Command::Executable { ref name, ref args } => {
+                let mut command = process::Command::new(name);
+                command.args(args);
+                command
+            }
+        }
+    }
+}
+
+pub fn run_normal(command: &Command) -> Result<ExitStatus, Error> {
+    command.to_process_command()
         .status()
         .map_err(|e| e.into())
 }
 
 #[cfg(unix)]
-pub fn run_exec(command: &str) -> Error {
+pub fn run_exec(command: &Command) -> Error {
     use std::os::unix::process::CommandExt;
-    Command::new("/bin/sh")
-        .arg("-c")
-        .arg(&command)
+    command.to_process_command()
         .exec()
         .into()
 }
 
 #[cfg(not(unix))]
-pub fn run_exec(command: &str) -> Error {
+pub fn run_exec(command: &Command) -> Error {
     match run_normal(command) {
         Ok(exit_status) => std::process::exit(exit_status.code().unwrap_or(0)),
         Err(error) => error,
@@ -30,11 +47,9 @@ pub fn run_exec(command: &str) -> Error {
 }
 
 #[cfg(unix)]
-pub fn run_background(command: &str) -> Result<(), Error> {
+pub fn run_background(command: &Command) -> Result<(), Error> {
     use std::os::unix::process::CommandExt;
-    Command::new("/bin/sh")
-        .arg("-c")
-        .arg(&command)
+    command.to_process_command()
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -50,7 +65,7 @@ pub fn run_background(command: &str) -> Result<(), Error> {
 }
 
 #[cfg(not(unix))]
-pub fn run_background(command: &str) -> Result<(), Error> {
+pub fn run_background(_command: &Command) -> Result<(), Error> {
     return Err(format_err!(
         "Running in background is currently only supported on unix platforms."
     ));

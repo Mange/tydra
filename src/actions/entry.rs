@@ -4,15 +4,13 @@ use super::Color;
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use std::fmt;
 
-const DEFAULT_COMMAND: &str = "/bin/true";
-
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Entry {
     title: String,
     shortcut: char,
-    #[serde(default = "Entry::default_command")]
-    command: String,
+    #[serde(default)]
+    command: Command,
     shortcut_color: Option<Color>,
     #[serde(default)]
     mode: Mode,
@@ -20,20 +18,31 @@ pub struct Entry {
     return_to: Return,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields, untagged)]
+pub enum Command {
+    ShellScript(String),
+    Executable {
+        name: String,
+        #[serde(default)]
+        args: Vec<String>,
+    }
+}
+
 #[derive(Debug)]
 pub enum Action {
     Run {
-        command: String,
+        command: Command,
         return_to: Return,
 
         /// For Mode::Wait commands
         wait: bool,
     },
     RunExec {
-        command: String,
+        command: Command,
     },
     RunBackground {
-        command: String,
+        command: Command,
         return_to: Return,
     },
     Exit,
@@ -66,10 +75,6 @@ pub enum Return {
 }
 
 impl Entry {
-    fn default_command() -> String {
-        String::from(DEFAULT_COMMAND)
-    }
-
     pub fn shortcut(&self) -> char {
         self.shortcut
     }
@@ -106,6 +111,12 @@ impl<'a> From<&'a Entry> for Action {
                 return_to: entry.return_to.clone(),
             },
         }
+    }
+}
+
+impl Default for Command {
+    fn default() -> Command {
+        Command::Executable { name: String::from("/bin/true"), args: vec![] }
     }
 }
 
@@ -181,6 +192,21 @@ impl<'de> Deserialize<'de> for Return {
     }
 }
 
+impl fmt::Display for Command {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Command::ShellScript(ref script) => script.fmt(formatter),
+            Command::Executable { ref name, ref args } => {
+                if args.is_empty() {
+                    write!(formatter, "{}", name)
+                } else {
+                    write!(formatter, "{} {:?}", name, args)
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,6 +217,23 @@ mod tests {
     pub struct OnlyReturn {
         #[serde(rename = "return")]
         return_to: Return,
+    }
+
+    #[test]
+    fn it_displays_commands() {
+        let script = Command::ShellScript(String::from("echo foo bar baz"));
+        let executable = Command::Executable {
+            name: String::from("ls"),
+            args: vec![String::from("-l"), String::from("/")],
+        };
+        let no_args = Command::Executable {
+            name: String::from("/bin/true"),
+            args: vec![],
+        };
+
+        assert_eq!(&format!("{}", script), "echo foo bar baz");
+        assert_eq!(&format!("{}", executable), "ls [\"-l\", \"/\"]");
+        assert_eq!(&format!("{}", no_args), "/bin/true");
     }
 
     #[test]
