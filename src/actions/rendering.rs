@@ -70,7 +70,8 @@ pub fn render_columns_layout(
 ) -> Result<(), Error> {
     let term_size = term.size()?;
     let width = term_size.width as usize;
-    let column_widths: Vec<usize> = page.groups()
+    let column_widths: Vec<usize> = page
+        .groups()
         .iter()
         .map(|group| {
             group
