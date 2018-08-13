@@ -57,16 +57,16 @@ fn main() {
         std::process::exit(0);
     }
 
-    if let Err(error) = run_menu(actions, &options) {
+    if let Err(error) = run_menu(&actions, &options) {
         show_cursor();
         eprintln!("Error: {}", error);
     }
 }
 
-fn load_actions(path: &String) -> Result<ActionFile, Error> {
+fn load_actions(path: &str) -> Result<ActionFile, Error> {
     std::fs::read_to_string(path)
-        .map_err(|e| Error::from(e))
-        .and_then(|data| serde_yaml::from_str(&data).map_err(|e| Error::from(e)))
+        .map_err(Error::from)
+        .and_then(|data| serde_yaml::from_str(&data).map_err(Error::from))
 }
 
 fn open_alternate_screen() -> Result<Term, Error> {
@@ -89,7 +89,7 @@ fn show_cursor() {
     println!("{}", termion::cursor::Show);
 }
 
-fn run_menu(actions: ActionFile, options: &AppOptions) -> Result<(), Error> {
+fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
     let ignore_exit_status = options.ignore_exit_status;
     let settings = actions.settings_accumulator();
     let mut current_page = actions.get_page("root");
@@ -166,7 +166,7 @@ fn render_menu<'a>(
     render(terminal, page, &settings)
 }
 
-fn process_input<'a>(page: &'a Page) -> Result<Action, Error> {
+fn process_input(page: &Page) -> Result<Action, Error> {
     use termion::input::TermRead;
     let stdin = std::io::stdin();
 
@@ -174,9 +174,10 @@ fn process_input<'a>(page: &'a Page) -> Result<Action, Error> {
         match evnt {
             event::Key::Esc => return Ok(Action::Exit),
             event::Key::Ctrl('l') => return Ok(Action::Redraw),
-            event::Key::Char(c) => match page.entry_with_shortcut(c) {
-                Some(entry) => return Ok(entry.into()),
-                None => {}
+            event::Key::Char(c) => {
+                if let Some(entry) = page.entry_with_shortcut(c) {
+                    return Ok(entry.into());
+                }
             },
             _ => {}
         }

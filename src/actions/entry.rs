@@ -79,7 +79,7 @@ impl Entry {
     }
 
     pub fn shortcut_color(&self) -> Option<Color> {
-        self.shortcut_color.clone()
+        self.shortcut_color
     }
 
     pub fn return_to(&self) -> &Return {
@@ -96,7 +96,7 @@ impl<'a> From<&'a Entry> for Action {
         let command = entry.command.clone();
         match entry.mode {
             Mode::Normal | Mode::Wait => Action::Run {
-                command: command,
+                command,
                 return_to: entry.return_to.clone(),
                 wait: entry.mode.is_wait(),
             },
@@ -116,8 +116,8 @@ impl Default for Mode {
 }
 
 impl Mode {
-    fn is_wait(&self) -> bool {
-        match *self {
+    fn is_wait(self) -> bool {
+        match self {
             Mode::Wait => true,
             _ => false,
         }

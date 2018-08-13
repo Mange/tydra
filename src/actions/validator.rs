@@ -63,7 +63,7 @@ fn validate_shortcut_duplicates(
     if !seen_shortcuts.insert(shortcut) {
         errors.push(ValidationError::DuplicatedShortcut {
             page_name: page_name.to_owned(),
-            shortcut: shortcut,
+            shortcut,
             title: entry.title().into(),
         });
     }

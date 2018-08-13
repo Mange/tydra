@@ -23,7 +23,7 @@ impl ActionFile {
     }
 
     pub fn get_page(&self, page_name: &str) -> &Page {
-        self.pages.get(page_name).unwrap()
+        &self.pages[page_name]
     }
 
     pub fn settings_accumulator(&self) -> SettingsAccumulator {

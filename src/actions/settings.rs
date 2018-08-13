@@ -106,8 +106,8 @@ impl Default for Color {
 }
 
 impl Color {
-    pub fn markup_name(&self) -> &'static str {
-        match *self {
+    pub fn markup_name(self) -> &'static str {
+        match self {
             Color::Reset => "reset",
             Color::Black => "black",
             Color::Blue => "blue",

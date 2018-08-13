@@ -36,7 +36,7 @@ pub fn render_list_layout(
         if let Some(title) = group.title() {
             text.push_str(&format!("\n\n{}:\n", title));
         } else {
-            text.push_str(&format!("\n\n"));
+            text.push_str("\n\n");
         }
 
         let mut current_line_length = 0;
@@ -100,13 +100,13 @@ pub fn render_columns_layout(
                 Size::Fixed(footer_lines as u16),
             ])
             .render(term, &term_size, |t, chunks| {
-                render_columns_title(t, &chunks[0], page.title(), required_width);
+                render_columns_title(t, chunks[0], page.title(), required_width);
                 if let Some(text) = page.header() {
-                    render_columns_text(t, &chunks[1], &text);
+                    render_columns_text(t, chunks[1], &text);
                 }
-                render_columns(t, &chunks[2], &column_widths, page.groups(), &settings);
+                render_columns(t, chunks[2], &column_widths, page.groups(), &settings);
                 if let Some(text) = page.footer() {
-                    render_columns_text(t, &chunks[3], &text);
+                    render_columns_text(t, chunks[3], &text);
                 }
             });
 
@@ -114,20 +114,20 @@ pub fn render_columns_layout(
     }
 }
 
-fn render_columns_text(term: &mut Term, rect: &Rect, text: &str) {
-    Paragraph::default().text(&text).render(term, rect);
+fn render_columns_text(term: &mut Term, rect: Rect, text: &str) {
+    Paragraph::default().text(&text).render(term, &rect);
 }
 
-fn render_columns_title(term: &mut Term, rect: &Rect, title: &str, width: usize) {
+fn render_columns_title(term: &mut Term, rect: Rect, title: &str, width: usize) {
     let centered_title = format!("{title:^width$}", title = title, width = width);
     Paragraph::default()
         .text(&centered_title)
-        .render(term, rect);
+        .render(term, &rect);
 }
 
 fn render_columns(
     term: &mut Term,
-    rect: &Rect,
+    rect: Rect,
     column_widths: &[usize],
     groups: &[Group],
     settings: &SettingsAccumulator,
@@ -142,14 +142,14 @@ fn render_columns(
     layout::Group::default()
         .direction(Direction::Horizontal)
         .sizes(&sizes)
-        .render(term, rect, |t, chunks| {
+        .render(term, &rect, |t, chunks| {
             for (chunk, group) in chunks.into_iter().zip(groups.iter()) {
-                render_column(t, chunk, group, &settings);
+                render_column(t, *chunk, group, &settings);
             }
         });
 }
 
-fn render_column(term: &mut Term, rect: &Rect, group: &Group, settings: &SettingsAccumulator) {
+fn render_column(term: &mut Term, rect: Rect, group: &Group, settings: &SettingsAccumulator) {
     let settings = settings.with_group(group);
     let mut text = String::new();
 
@@ -165,7 +165,7 @@ fn render_column(term: &mut Term, rect: &Rect, group: &Group, settings: &Setting
     Paragraph::default()
         .wrap(true)
         .text(&text)
-        .render(term, rect);
+        .render(term, &rect);
 }
 
 fn render_entry(entry: &Entry) -> String {
