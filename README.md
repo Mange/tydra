@@ -87,11 +87,11 @@ pages:
       - entries:
         - shortcut: r
           title: Refresh package repos
-          command: "sudo pacman -Sy"
+          command: "clear; sudo pacman -Sy"
           return: true
         - shortcut: u
           title: Show packages that can be upgraded
-          command: "pacman -Qu | less -+F"
+          command: "clear; pacman -Qu | less -+F"
           return: true
         - shortcut: U
           title: Install upgrades

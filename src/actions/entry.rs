@@ -43,7 +43,7 @@ pub enum Action {
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
-    /// Normal operation; e.g. none of the other alternatives.
+    /// Runs the command and then returns to tydra as soon as it has finished.
     Normal,
 
     /// Display a "Press enter to continue" prompt after the command has finished before
