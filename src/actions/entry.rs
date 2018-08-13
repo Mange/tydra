@@ -4,54 +4,89 @@ use super::Color;
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use std::fmt;
 
+/// Represents a single entry in the action file. This entry is something a user can select when
+/// they are on the page that contains this entry.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Entry {
+    /// The title of the entry. Will be rendered in the menu.
     title: String,
+
+    /// The character used to activate this shortcut; e.g. 'c' to activate when user presses the C
+    /// key on their keyboard, or 'C' to activate when user presses Shift+C keys.
     shortcut: char,
+
+    /// The Command to run when activating this entry. By default this will be a small no-op
+    /// Command that should always succeed.
     #[serde(default)]
     command: Command,
+
+    /// Optional color to use when rendering the shortcut key in the menu. Will be inherited from
+    /// the Page's settings if unset here.
     shortcut_color: Option<Color>,
-    #[serde(default)]
-    mode: Mode,
+
+    /// The runner mode, e.g. if the command should run in the background, replace the process, or
+    /// some other runner mode.
+    #[serde(default, rename = "mode")]
+    runner_mode: RunMode,
+
+    /// Specification on where to return to after executing the command.
     #[serde(rename = "return", default)]
     return_to: Return,
 }
 
+/// Represents something to execute when an Entry is selected.
 #[derive(Debug, Deserialize, Clone)]
 #[serde(deny_unknown_fields, untagged)]
 pub enum Command {
+    /// A full shell script; will be run inside /bin/sh.
     ShellScript(String),
+
+    /// A raw executable and a list of arguments. Will not do any shell processing or extra
+    /// wrapping of the executable.
     Executable {
+        /// Command name (from $PATH) or full path.
         name: String,
+
+        /// List of arguments to pass to the command.
         #[serde(default)]
         args: Vec<String>,
     }
 }
 
+/// An action, aka something to do in the menu event loop.
 #[derive(Debug)]
 pub enum Action {
+    /// Run a command in normal mode.
     Run {
         command: Command,
         return_to: Return,
 
-        /// For Mode::Wait commands
+        /// For RunMode::Wait commands
         wait: bool,
     },
+    /// Replace tydra with a Command.
     RunExec {
         command: Command,
     },
+
+    /// Run a Command in the background and return to tydra.
     RunBackground {
         command: Command,
         return_to: Return,
     },
+
+    /// Exit tydra.
     Exit,
+
+    /// Redraw (re-render) the menu again. Good if your terminal window has been resized or on any
+    /// other display problems.
     Redraw,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Mode {
+pub enum RunMode {
     /// Runs the command and then returns to tydra as soon as it has finished.
     Normal,
 
@@ -91,22 +126,23 @@ impl Entry {
         &self.return_to
     }
 
-    pub fn mode(&self) -> Mode {
-        self.mode
+    pub fn runner_mode(&self) -> RunMode {
+        self.runner_mode
     }
 }
 
 impl<'a> From<&'a Entry> for Action {
+    /// Convert a Entry into an Action for consumption by the main event loop.
     fn from(entry: &'a Entry) -> Action {
         let command = entry.command.clone();
-        match entry.mode {
-            Mode::Normal | Mode::Wait => Action::Run {
+        match entry.runner_mode {
+            RunMode::Normal | RunMode::Wait => Action::Run {
                 command,
                 return_to: entry.return_to.clone(),
-                wait: entry.mode.is_wait(),
+                wait: entry.runner_mode.is_wait(),
             },
-            Mode::Exec => Action::RunExec { command },
-            Mode::Background => Action::RunBackground {
+            RunMode::Exec => Action::RunExec { command },
+            RunMode::Background => Action::RunBackground {
                 command,
                 return_to: entry.return_to.clone(),
             },
@@ -115,21 +151,22 @@ impl<'a> From<&'a Entry> for Action {
 }
 
 impl Default for Command {
+    /// The default command should run a simple no-op command.
     fn default() -> Command {
         Command::Executable { name: String::from("/bin/true"), args: vec![] }
     }
 }
 
-impl Default for Mode {
-    fn default() -> Mode {
-        Mode::Normal
+impl Default for RunMode {
+    fn default() -> RunMode {
+        RunMode::Normal
     }
 }
 
-impl Mode {
+impl RunMode {
     fn is_wait(self) -> bool {
         match self {
-            Mode::Wait => true,
+            RunMode::Wait => true,
             _ => false,
         }
     }
@@ -141,6 +178,7 @@ impl Default for Return {
     }
 }
 
+/// Parse a string as a page name, or true as "SamePage" and false as "Quit".
 struct ReturnVisitor;
 
 impl<'de> Visitor<'de> for ReturnVisitor {
@@ -184,6 +222,7 @@ impl<'de> Visitor<'de> for ReturnVisitor {
 }
 
 impl<'de> Deserialize<'de> for Return {
+    /// Parse a string as a page name, or true as "SamePage" and false as "Quit".
     fn deserialize<D>(deserializer: D) -> Result<Return, D::Error>
     where
         D: Deserializer<'de>,

@@ -1,4 +1,4 @@
-use actions::{ActionFile, Entry, Mode, Return};
+use actions::{ActionFile, Entry, RunMode, Return};
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Fail)]
@@ -80,7 +80,7 @@ fn validate_return_link(errors: &mut Vec<ValidationError>, entry: &Entry, action
 }
 
 fn validate_mode(errors: &mut Vec<ValidationError>, entry: &Entry, page_name: &str) {
-    if entry.mode() == Mode::Exec {
+    if entry.runner_mode() == RunMode::Exec {
         match entry.return_to() {
             Return::SamePage | Return::OtherPage(_) => {
                 errors.push(ValidationError::ExecWithReturn {

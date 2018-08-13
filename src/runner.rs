@@ -1,18 +1,16 @@
 extern crate nix;
 
+use actions::Command;
 use failure::Error;
 use std::process;
 use std::process::{ExitStatus, Stdio};
-use actions::Command;
 
 impl Command {
     fn to_process_command(&self) -> process::Command {
         match *self {
             Command::ShellScript(ref script) => {
                 let mut command = process::Command::new("/bin/sh");
-                command
-                    .arg("-c")
-                    .arg(script);
+                command.arg("-c").arg(script);
                 command
             }
             Command::Executable { ref name, ref args } => {
@@ -25,17 +23,13 @@ impl Command {
 }
 
 pub fn run_normal(command: &Command) -> Result<ExitStatus, Error> {
-    command.to_process_command()
-        .status()
-        .map_err(|e| e.into())
+    command.to_process_command().status().map_err(|e| e.into())
 }
 
 #[cfg(unix)]
 pub fn run_exec(command: &Command) -> Error {
     use std::os::unix::process::CommandExt;
-    command.to_process_command()
-        .exec()
-        .into()
+    command.to_process_command().exec().into()
 }
 
 #[cfg(not(unix))]
@@ -49,7 +43,8 @@ pub fn run_exec(command: &Command) -> Error {
 #[cfg(unix)]
 pub fn run_background(command: &Command) -> Result<(), Error> {
     use std::os::unix::process::CommandExt;
-    command.to_process_command()
+    command
+        .to_process_command()
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
