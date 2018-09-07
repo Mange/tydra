@@ -60,10 +60,7 @@ fn main() {
 
     // Run the menu. If it fails, then print the error message.
     if let Err(error) = run_menu(&actions, &options) {
-        // Make sure to restore the cursor before outputing the error. There are some exit
-        // conditions of run_menu that does not restore after themselves.
-        // TODO: Make run_menu always clean up after itself.
-        show_cursor();
+        flush_terminal();
         eprintln!("Error: {}", error);
     }
 }
@@ -74,30 +71,46 @@ fn load_actions_from_path(path: &str) -> Result<ActionFile, Error> {
         .and_then(|data| serde_yaml::from_str(&data).map_err(Error::from))
 }
 
-/// Opens the terminal's "Alternate screen" and hide the cursor.
-///
-/// This is like a separate screen that you can ouput to freely, and when this screen is closed the
-/// previous screen is restored. Most terminal UIs use this in order to not clobber output from
-/// earlier commands. For example, run vim and exit it again and you can see that your terminal is
-/// restored to look like it did before you started vim.
-fn open_alternate_screen() -> Result<Term, Error> {
-    let backend = AlternateScreenBackend::new()?;
-    let mut terminal = Terminal::new(backend)?;
-    terminal.hide_cursor()?;
-    terminal.clear()?;
-    Ok(terminal)
+fn flush_terminal() {
+    // Flush the output from Terminal being dropped; this is not done by termion itself.
+    // https://gitlab.redox-os.org/redox-os/termion/issues/158
+    //
+    // Printing to stderr before stdout is flushed, or letting other processes write to it,
+    // means that the text ends up on the alternate screen that will be removed as soon as *our*
+    // stdout buffer is flushed.
+    use std::io::Write;
+    ::std::io::stdout().flush().ok();
 }
 
-/// Stop the alternate screen and show the cursor again.
-fn stop_alternate_screen(mut terminal: Term) -> Result<(), Error> {
-    terminal.show_cursor()?;
-    drop(terminal);
-    Ok(())
+/// Wrapper around an AlternateScreen terminal, that handles restoration on drop.
+struct TermHandle(Term);
+
+impl TermHandle {
+    /// Opens the terminal's "Alternate screen" and hide the cursor.
+    ///
+    /// This is like a separate screen that you can ouput to freely, and when this screen is closed
+    /// the previous screen is restored. Most terminal UIs use this in order to not clobber output
+    /// from earlier commands. For example, run vim and exit it again and you can see that your
+    /// terminal is restored to look like it did before you started vim.
+    ///
+    /// Will restore cursor when dropped.
+    fn new() -> Result<TermHandle, Error> {
+        let backend = AlternateScreenBackend::new()?;
+        let mut terminal = Terminal::new(backend)?;
+        terminal.hide_cursor()?;
+        terminal.clear()?;
+        Ok(TermHandle(terminal))
+    }
+
+    fn restart(self) -> Result<TermHandle, Error> {
+        TermHandle::new()
+    }
 }
 
-/// Show cursor without depending on a Terminal.
-fn show_cursor() {
-    println!("{}", termion::cursor::Show);
+impl Drop for TermHandle {
+    fn drop(&mut self) {
+        self.0.show_cursor().ok();
+    }
 }
 
 /// Starts the main event loop.
@@ -126,11 +139,11 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
     let mut current_page = actions.get_page("root");
     let mut page_settings = settings.with_page(&current_page);
 
-    let mut terminal = open_alternate_screen()?;
+    let mut terminal = TermHandle::new()?;
 
     // Loop
     loop {
-        render(&mut terminal, current_page, &page_settings)?;
+        render(&mut terminal.0, current_page, &page_settings)?;
 
         // Wait for an event from user input.
         let action = process_input(current_page)?;
@@ -140,10 +153,7 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
 
             // Redraw menu.
             Action::Redraw => {
-                // Force total reflow by starting over with a new alternate screen.
-                stop_alternate_screen(terminal)?;
-                terminal = open_alternate_screen()?;
-
+                terminal = terminal.restart()?;
                 Return::SamePage
             }
 
@@ -154,45 +164,13 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
                 return_to,
                 wait,
             } => {
-                // Run commands on the normal screen. This preserves the command's output even
-                // after tydra exits.
-                stop_alternate_screen(terminal)?;
-
-                // Run the command in normal mode.
-                match runner::run_normal(&command) {
-                    // Command ran; check if it failed or succeeded.
-                    Ok(exit_status) => {
-                        if error_on_failure && !exit_status.success() {
-                            return Err(format_err!(
-                                "Command exited with exit status {}: {}",
-                                exit_status.code().unwrap_or(1),
-                                command
-                            ));
-                        }
-                    }
-                    // Could not run command.
-                    Err(err) => return Err(err),
-                }
-
-                // Wait for user confirmation ("Press enter to continue")
-                if wait {
-                    wait_for_confirmation()?;
-                }
-
-                // Go back to the alternate screen again.
-                terminal = open_alternate_screen()?;
-
+                terminal = run_normal(terminal, error_on_failure, command, wait)?;
                 return_to
             }
 
             // Replace tydra with the command's process.
-            Action::RunExec { command } => {
-                // Restore screen first of all.
-                stop_alternate_screen(terminal)?;
-                // If this returns, then it failed to exec the process so wrap that value in a
-                // error.
-                return Err(runner::run_exec(&command));
-            }
+            // If it returns, it has to be an error.
+            Action::RunExec { command } => return Err(run_exec(terminal, command)),
 
             // Run command in background and immediately return to the menu again.
             Action::RunBackground { command, return_to } => {
@@ -212,9 +190,49 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
         }
     }
 
-    // End
-    terminal.show_cursor()?;
     Ok(())
+}
+
+fn run_normal(
+    terminal: TermHandle,
+    error_on_failure: bool,
+    command: actions::Command,
+    wait: bool,
+) -> Result<TermHandle, Error> {
+    // Run commands on the normal screen. This preserves the command's output even
+    // after tydra exits.
+    drop(terminal);
+    flush_terminal();
+
+    match runner::run_normal(&command) {
+        Ok(exit_status) => {
+            if error_on_failure && !exit_status.success() {
+                return Err(format_err!(
+                    "Command exited with exit status {}: {}",
+                    exit_status.code().unwrap_or(1),
+                    command
+                ));
+            }
+        }
+        Err(err) => return Err(err),
+    }
+
+    if wait {
+        wait_for_confirmation()?;
+    }
+
+    TermHandle::new()
+}
+
+// Can use `!` when it is stable; it never returns a non-error
+fn run_exec(terminal: TermHandle, command: actions::Command) -> Error {
+    // Restore screen for the new command.
+    drop(terminal);
+    flush_terminal();
+
+    // If this returns, then it failed to exec the process so wrap that value in a
+    // error.
+    runner::run_exec(&command)
 }
 
 /// Reads input events until a valid event is found and returns it as an Action. Reads actions from
