@@ -62,6 +62,9 @@ fn main() {
     if let Err(error) = run_menu(&actions, &options) {
         flush_terminal();
         eprintln!("Error: {}", error);
+        for cause in error.iter_causes() {
+            eprintln!("Caused by: {}", cause);
+        }
     }
 }
 
