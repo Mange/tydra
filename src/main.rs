@@ -140,10 +140,7 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
 
             // Redraw menu.
             Action::Redraw => {
-                // Force total reflow by starting over with a new alternate screen.
-                stop_alternate_screen(terminal)?;
-                terminal = open_alternate_screen()?;
-
+                terminal = redraw(terminal)?;
                 Return::SamePage
             }
 
@@ -154,45 +151,13 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
                 return_to,
                 wait,
             } => {
-                // Run commands on the normal screen. This preserves the command's output even
-                // after tydra exits.
-                stop_alternate_screen(terminal)?;
-
-                // Run the command in normal mode.
-                match runner::run_normal(&command) {
-                    // Command ran; check if it failed or succeeded.
-                    Ok(exit_status) => {
-                        if error_on_failure && !exit_status.success() {
-                            return Err(format_err!(
-                                "Command exited with exit status {}: {}",
-                                exit_status.code().unwrap_or(1),
-                                command
-                            ));
-                        }
-                    }
-                    // Could not run command.
-                    Err(err) => return Err(err),
-                }
-
-                // Wait for user confirmation ("Press enter to continue")
-                if wait {
-                    wait_for_confirmation()?;
-                }
-
-                // Go back to the alternate screen again.
-                terminal = open_alternate_screen()?;
-
+                terminal = run_normal(terminal, error_on_failure, command, wait)?;
                 return_to
             }
 
             // Replace tydra with the command's process.
-            Action::RunExec { command } => {
-                // Restore screen first of all.
-                stop_alternate_screen(terminal)?;
-                // If this returns, then it failed to exec the process so wrap that value in a
-                // error.
-                return Err(runner::run_exec(&command));
-            }
+            // If it returns, it has to be an error.
+            Action::RunExec { command } => return Err(run_exec(terminal, command)),
 
             // Run command in background and immediately return to the menu again.
             Action::RunBackground { command, return_to } => {
@@ -215,6 +180,58 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
     // End
     terminal.show_cursor()?;
     Ok(())
+}
+
+fn redraw(terminal: Term) -> Result<Term, Error> {
+    // Force total reflow by starting over with a new alternate screen.
+    stop_alternate_screen(terminal)?;
+    open_alternate_screen()
+}
+
+fn run_normal(
+    terminal: Term,
+    error_on_failure: bool,
+    command: actions::Command,
+    wait: bool,
+) -> Result<Term, Error> {
+    // Run commands on the normal screen. This preserves the command's output even
+    // after tydra exits.
+    stop_alternate_screen(terminal)?;
+
+    // Run the command in normal mode.
+    match runner::run_normal(&command) {
+        // Command ran; check if it failed or succeeded.
+        Ok(exit_status) => {
+            if error_on_failure && !exit_status.success() {
+                return Err(format_err!(
+                    "Command exited with exit status {}: {}",
+                    exit_status.code().unwrap_or(1),
+                    command
+                ));
+            }
+        }
+        // Could not run command.
+        Err(err) => return Err(err),
+    }
+
+    // Wait for user confirmation ("Press enter to continue")
+    if wait {
+        wait_for_confirmation()?;
+    }
+
+    // Go back to the alternate screen again.
+    open_alternate_screen()
+}
+
+// Can use `!` when it is stable; it never returns a non-error
+fn run_exec(terminal: Term, command: actions::Command) -> Error {
+    // Restore screen first of all.
+    if let Err(error) = stop_alternate_screen(terminal) {
+        return error;
+    }
+    // If this returns, then it failed to exec the process so wrap that value in a
+    // error.
+    runner::run_exec(&command)
 }
 
 /// Reads input events until a valid event is found and returns it as an Action. Reads actions from
