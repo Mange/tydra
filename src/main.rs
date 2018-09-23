@@ -29,6 +29,7 @@ use tui::Terminal;
 type Term = Terminal<AlternateScreenBackend>;
 
 #[derive(Debug, StructOpt)]
+#[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
 pub struct AppOptions {
     /// Read menu contents from this file.
     #[structopt(value_name = "ACTION_FILE")]
