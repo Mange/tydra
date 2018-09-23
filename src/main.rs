@@ -54,7 +54,7 @@ fn main() {
 
     // Validate the action file so it is semantically correct before continuing.
     if let Err(errors) = actions.validate(&options) {
-        eprintln!("Actions are invalid: {:#?}", errors);
+        print_validation_errors(&errors);
         std::process::exit(1);
     }
 
@@ -306,4 +306,11 @@ fn wait_for_confirmation() -> Result<(), Error> {
     // stdin closed, or other state that makes stdin not produce any output anymore
     // TODO: Have a nicer error message here.
     Err(format_err!("stdin eof"))
+}
+
+fn print_validation_errors(errors: &[actions::ValidationError]) {
+    eprintln!("Actions are invalid:");
+    for (index, error) in errors.iter().enumerate() {
+        eprintln!("  {number}. {message}", number = index + 1, message = error);
+    }
 }
