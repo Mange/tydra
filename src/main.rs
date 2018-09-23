@@ -29,9 +29,14 @@ use tui::Terminal;
 type Term = Terminal<AlternateScreenBackend>;
 
 #[derive(Debug, StructOpt)]
-struct AppOptions {
+pub struct AppOptions {
+    /// Read menu contents from this file.
     #[structopt(value_name = "ACTION_FILE")]
     filename: String,
+
+    /// Start on this page.
+    #[structopt(long = "page", short = "p", default_value = "root")]
+    start_page: String,
 
     /// Instead of showing the menu, validate the action file.
     #[structopt(long = "validate")]
@@ -48,7 +53,7 @@ fn main() {
         load_actions_from_path(&options.filename).expect("Failed to parse file");
 
     // Validate the action file so it is semantically correct before continuing.
-    if let Err(errors) = actions.validate() {
+    if let Err(errors) = actions.validate(&options) {
         eprintln!("Actions are invalid: {:#?}", errors);
         std::process::exit(1);
     }
@@ -120,7 +125,7 @@ impl Drop for TermHandle {
 /// Starts the main event loop.
 ///
 /// Start:
-///     Begin on page "root".
+///     Begin on root page.
 ///     Open alternate screen.
 /// Loop:
 ///     Render menu.
@@ -140,7 +145,7 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
     // Start
     let error_on_failure = !options.ignore_exit_status;
     let settings = actions.settings_accumulator();
-    let mut current_page = actions.get_page("root");
+    let mut current_page = actions.get_page(&options.start_page);
     let mut page_settings = settings.with_page(&current_page);
 
     let mut terminal = TermHandle::new()?;

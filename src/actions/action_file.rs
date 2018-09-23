@@ -1,5 +1,6 @@
 use super::{validator, Page, Settings, SettingsAccumulator, ValidationError};
 use std::collections::BTreeMap;
+use AppOptions;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -14,8 +15,8 @@ impl ActionFile {
         self.pages.iter().map(|(name, page)| (page, name.as_ref()))
     }
 
-    pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
-        validator::validate(self)
+    pub fn validate(&self, options: &AppOptions) -> Result<(), Vec<ValidationError>> {
+        validator::validate(self, &options.start_page)
     }
 
     pub fn has_page(&self, page_name: &str) -> bool {
@@ -36,17 +37,28 @@ mod tests {
     use super::*;
     extern crate serde_yaml;
 
+    fn default_options() -> AppOptions {
+        AppOptions {
+            filename: String::from("/dev/null"),
+            ignore_exit_status: false,
+            start_page: String::from("root"),
+            validate: false,
+        }
+    }
+
     #[test]
     fn it_loads_minimal_yaml() {
+        let options = default_options();
         let actions: ActionFile =
             serde_yaml::from_str(include_str!("../../tests/fixtures/minimal.yml")).unwrap();
-        actions.validate().unwrap();
+        actions.validate(&options).unwrap();
     }
 
     #[test]
     fn it_loads_complex_yaml() {
+        let options = default_options();
         let actions: ActionFile =
             serde_yaml::from_str(include_str!("../../tests/fixtures/complex.yml")).unwrap();
-        actions.validate().unwrap();
+        actions.validate(&options).unwrap();
     }
 }

@@ -1,15 +1,26 @@
-use actions::{ActionFile, Entry, RunMode, Return};
+use actions::{ActionFile, Entry, Return, RunMode};
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Fail)]
 pub enum ValidationError {
-    #[fail(display = "Found reference to an unknown page: {}", page_name)]
+    #[fail(
+        display = "Found reference to an unknown page: {}",
+        page_name
+    )]
     UnknownPage { page_name: String },
     #[fail(display = "Found page with no entries: {}", page_name)]
     EmptyPage { page_name: String },
-    #[fail(display = "There is no root page. A root page must be specified.")]
-    NoRoot,
-    #[fail(display = "Page {} has a duplicated shortcut: {} ({})", page_name, shortcut, title)]
+    #[fail(
+        display = "Specified root page does not exist: {}",
+        root_name
+    )]
+    NoRoot { root_name: String },
+    #[fail(
+        display = "Page {} has a duplicated shortcut: {} ({})",
+        page_name,
+        shortcut,
+        title
+    )]
     DuplicatedShortcut {
         page_name: String,
         shortcut: char,
@@ -23,11 +34,13 @@ pub enum ValidationError {
     ExecWithReturn { page_name: String, shortcut: char },
 }
 
-pub fn validate(actions: &ActionFile) -> Result<(), Vec<ValidationError>> {
+pub fn validate(actions: &ActionFile, root_name: &str) -> Result<(), Vec<ValidationError>> {
     let mut errors: Vec<ValidationError> = Vec::new();
 
-    if !actions.has_page("root") {
-        errors.push(ValidationError::NoRoot);
+    if !actions.has_page(root_name) {
+        errors.push(ValidationError::NoRoot {
+            root_name: root_name.into(),
+        });
     }
 
     for (page, page_name) in actions.pages_with_names() {
@@ -102,7 +115,7 @@ mod tests {
     fn it_validates_missing_pages() {
         let actions: ActionFile =
             serde_yaml::from_str(include_str!("../../tests/fixtures/unknown_page.yml")).unwrap();
-        let errors = actions.validate().unwrap_err();
+        let errors = validate(&actions, "root").unwrap_err();
 
         assert_eq!(errors.len(), 2);
         assert_eq!(
@@ -134,7 +147,7 @@ pages:
         - entries: []"#,
         ).unwrap();
 
-        let errors = actions.validate().unwrap_err();
+        let errors = validate(&actions, "root").unwrap_err();
 
         assert_eq!(errors.len(), 1);
         assert_eq!(
@@ -150,17 +163,22 @@ pages:
         let actions: ActionFile = serde_yaml::from_str(
             r#"
 pages:
-  foo_page:
+  potato:
     groups:
       - entries:
           - shortcut: a
             title: Working"#,
         ).unwrap();
 
-        let errors = actions.validate().unwrap_err();
+        let errors = validate(&actions, "horseradish").unwrap_err();
 
         assert_eq!(errors.len(), 1);
-        assert_eq!(errors[0], ValidationError::NoRoot);
+        assert_eq!(
+            errors[0],
+            ValidationError::NoRoot {
+                root_name: String::from("horseradish")
+            }
+        );
     }
 
     #[test]
@@ -186,7 +204,7 @@ pages:
             title: Duplicated shortcut"#,
         ).unwrap();
 
-        let errors = actions.validate().unwrap_err();
+        let errors = validate(&actions, "root").unwrap_err();
 
         assert_eq!(errors.len(), 1);
         assert_eq!(
@@ -220,7 +238,7 @@ pages:
             return: root"#,
         ).unwrap();
 
-        let errors = actions.validate().unwrap_err();
+        let errors = validate(&actions, "root").unwrap_err();
 
         assert_eq!(errors.len(), 2);
         assert_eq!(
