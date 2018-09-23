@@ -51,7 +51,7 @@ pub enum Command {
         /// List of arguments to pass to the command.
         #[serde(default)]
         args: Vec<String>,
-    }
+    },
 }
 
 /// An action, aka something to do in the menu event loop.
@@ -66,15 +66,10 @@ pub enum Action {
         wait: bool,
     },
     /// Replace tydra with a Command.
-    RunExec {
-        command: Command,
-    },
+    RunExec { command: Command },
 
     /// Run a Command in the background and return to tydra.
-    RunBackground {
-        command: Command,
-        return_to: Return,
-    },
+    RunBackground { command: Command, return_to: Return },
 
     /// Exit tydra.
     Exit,
@@ -82,6 +77,9 @@ pub enum Action {
     /// Redraw (re-render) the menu again. Good if your terminal window has been resized or on any
     /// other display problems.
     Redraw,
+
+    /// Place tydra in the background (^Z)
+    Pause,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
@@ -153,7 +151,10 @@ impl<'a> From<&'a Entry> for Action {
 impl Default for Command {
     /// The default command should run a simple no-op command.
     fn default() -> Command {
-        Command::Executable { name: String::from("/bin/true"), args: vec![] }
+        Command::Executable {
+            name: String::from("/bin/true"),
+            args: vec![],
+        }
     }
 }
 

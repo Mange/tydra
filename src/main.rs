@@ -1,3 +1,4 @@
+extern crate nix;
 extern crate serde;
 extern crate serde_yaml;
 extern crate termion;
@@ -160,6 +161,11 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
                 Return::SamePage
             }
 
+            Action::Pause => {
+                terminal = pause_tydra(terminal)?;
+                Return::SamePage
+            }
+
             // Run a command in normal mode, e.g. pause tydra and run the command. Return to tydra
             // after the command exits.
             Action::Run {
@@ -238,6 +244,20 @@ fn run_exec(terminal: TermHandle, command: actions::Command) -> Error {
     runner::run_exec(&command)
 }
 
+fn pause_tydra(terminal: TermHandle) -> Result<TermHandle, Error> {
+    use nix::sys::signal::{kill, Signal};
+    use nix::unistd::Pid;
+
+    drop(terminal);
+    flush_terminal();
+
+    // Tell this process to pause (standard ^Z signal)
+    kill(Pid::this(), Signal::SIGTSTP)?;
+
+    // Now the process is running again. Restore the terminal!
+    TermHandle::new()
+}
+
 /// Reads input events until a valid event is found and returns it as an Action. Reads actions from
 /// provided page to determine what events are valid.
 fn process_input(page: &Page) -> Result<Action, Error> {
@@ -249,6 +269,7 @@ fn process_input(page: &Page) -> Result<Action, Error> {
         match event {
             event::Key::Esc => return Ok(Action::Exit),
             event::Key::Ctrl('l') => return Ok(Action::Redraw),
+            event::Key::Ctrl('z') => return Ok(Action::Pause),
             event::Key::Char(chr) => {
                 if let Some(entry) = page.entry_with_shortcut(chr) {
                     return Ok(entry.into());
