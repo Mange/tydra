@@ -129,5 +129,3 @@ tydra /path/to/actions.yml
 
 - A way to dynamically generate pages.
   - Run a command that generates JSON or YAML?
-
-- Configure keybindings.

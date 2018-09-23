@@ -284,9 +284,7 @@ fn process_input(page: &Page) -> Result<Action, Error> {
         }
     }
 
-    // stdin closed, or other state that makes stdin not produce any output anymore
-    // TODO: Have a nicer error message here.
-    Err(format_err!("stdin eof"))
+    Err(format_err!("stdin was closed."))
 }
 
 /// Waits for the user to press Enter (or Escape, just to be nice) before returning.
@@ -303,9 +301,7 @@ fn wait_for_confirmation() -> Result<(), Error> {
         }
     }
 
-    // stdin closed, or other state that makes stdin not produce any output anymore
-    // TODO: Have a nicer error message here.
-    Err(format_err!("stdin eof"))
+    Err(format_err!("stdin was closed."))
 }
 
 fn print_validation_errors(errors: &[actions::ValidationError]) {
