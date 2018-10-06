@@ -39,6 +39,31 @@ See [doc/tydra.1.md](doc/tydra.1.md) for more information.
 Packaging will be done on the 1.0.0 release. For now you can install using
 `cargo install`.
 
+### Completions
+
+This command comes with support for shell autocompletions for **bash**,
+**zsh**, and **fish**.
+
+You can generate and install these completions globally:
+
+```bash
+tydra --generate-completions zsh > _tydra
+tydra --generate-completions bash > tydra.bash
+tydra --generate-completions fish > tydra.fish
+
+sudo install -Dm644 _tydra \
+  /usr/share/zsh/site-functions/_tydra
+
+sudo install -Dm644 tydra.bash \
+  /usr/share/bash-completion/completions/tydra
+
+sudo install -Dm644 tydra.fish \
+  /usr/share/fish/completions/tydra.fish
+```
+
+If you have a local source for completions, redirect the output of the
+`--generate-completions` command to the appropriate location.
+
 ## Copyright
 
 Copyright 2018 Magnus Bergmark <magnus.bergmark@gmail.com>

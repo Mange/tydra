@@ -21,6 +21,7 @@ mod runner;
 
 use actions::{render, Action, ActionFile, Page, Return};
 use failure::Error;
+use structopt::clap::Shell;
 use structopt::StructOpt;
 use termion::event;
 use tui::backend::AlternateScreenBackend;
@@ -32,8 +33,11 @@ type Term = Terminal<AlternateScreenBackend>;
 #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
 pub struct AppOptions {
     /// Read menu contents from this file.
-    #[structopt(value_name = "ACTION_FILE")]
-    filename: String,
+    #[structopt(
+        value_name = "ACTION_FILE",
+        required_unless = "generate_completions"
+    )]
+    filename: Option<String>,
 
     /// Start on this page.
     #[structopt(long = "page", short = "p", default_value = "root")]
@@ -46,12 +50,46 @@ pub struct AppOptions {
     /// When a command fails, ignore it and do not exit tydra.
     #[structopt(long = "ignore-exit-status", short = "e")]
     ignore_exit_status: bool,
+
+    /// Generate completion script for a given shell and output on STDOUT.
+    #[structopt(
+        long = "generate-completions",
+        value_name = "SHELL",
+        raw(possible_values = "&Shell::variants()")
+    )]
+    generate_completions: Option<Shell>,
+}
+
+fn generate_completions(shell: structopt::clap::Shell) {
+    use std::io;
+    let mut app = AppOptions::clap();
+    let name = app.get_name().to_string();
+
+    app.gen_completions_to(name, shell, &mut io::stdout());
 }
 
 fn main() {
     let options = AppOptions::from_args();
-    let actions: ActionFile =
-        load_actions_from_path(&options.filename).expect("Failed to parse file");
+
+    if let Some(shell) = options.generate_completions {
+        generate_completions(shell);
+        return;
+    }
+
+    // Because filename should only ever be None if passed generate_completions options (thanks to
+    // required_unless), it should be safe to unwrap after checking for generate_completions.
+    let filename = options.filename.as_ref().unwrap();
+
+    let actions: ActionFile = match load_actions_from_path(filename) {
+        Ok(actions) => actions,
+        Err(error) => {
+            eprintln!("Error while loading \"{}\": {}", filename, error);
+            for cause in error.iter_causes() {
+                eprintln!("Caused by: {}", cause);
+            }
+            return;
+        }
+    };
 
     // Validate the action file so it is semantically correct before continuing.
     if let Err(errors) = actions.validate(&options) {

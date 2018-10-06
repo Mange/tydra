@@ -39,10 +39,11 @@ mod tests {
 
     fn default_options() -> AppOptions {
         AppOptions {
-            filename: String::from("/dev/null"),
+            filename: Some(String::from("/dev/null")),
             ignore_exit_status: false,
             start_page: String::from("root"),
             validate: false,
+            generate_completions: None,
         }
     }
 
