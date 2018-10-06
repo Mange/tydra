@@ -2,7 +2,7 @@
 
 > Terminal Hydra
 
-[![Build Status][ci-badge]][ci]
+[![Build Status][ci-badge]][ci] [![codecov][codecov-badge]][codecov]
 
 Tydra is a menu-based shortcut runner based on the Hydra system in Emacs.
 
@@ -72,3 +72,5 @@ Code is released under MIT license, see `LICENSE`.
 
 [ci-badge]: https://travis-ci.org/Mange/tydra.svg?branch=master
 [ci]: https://travis-ci.org/Mange/tydra
+[codecov]: https://codecov.io/gh/Mange/tydra
+[codecov-badge]: https://codecov.io/gh/Mange/tydra/branch/master/graph/badge.svg
