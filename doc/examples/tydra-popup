@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Pops up tydra in a new terminal emulator
+
+if hash kitty 2>/dev/null; then
+  exec kitty tydra "$@"
+elif hash termite 2>/dev/null; then
+  exec termite -e "tydra $(printf '%q ' "$@")"
+elif hash gnome-terminal 2>/dev/null; then
+  exec gnome-terminal -e "tydra $(printf '%q ' "$@")"
+else
+  echo "Please add support for your terminal emulator..." > /dev/stderr
+  exit 2
+fi
