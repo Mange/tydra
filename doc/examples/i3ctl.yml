@@ -1,0 +1,67 @@
+# This example file is for controlling i3.
+
+pages:
+  root:
+    title: i3 control
+    settings:
+      layout: columns
+      shortcut_color: green
+    groups:
+      - title: Environment
+        entries:
+          - shortcut: r
+            title: Reload config
+            command: i3-msg reload
+          - shortcut: R
+            title: Restart i3
+            command: i3-msg restart
+            shortcut_color: red
+      # If you are running i3-gaps. Will crash on normal i3.
+      - title: Gaps
+        entries:
+          - shortcut: "="
+            title: Increase inner
+            mode: background
+            return: true
+            shortcut_color: yellow
+            command: i3-msg gaps inner current plus 5
+
+          - shortcut: "-"
+            title: Decrease inner
+            mode: background
+            return: true
+            shortcut_color: yellow
+            command: i3-msg gaps inner current minus 5
+
+          - shortcut: "0"
+            title: Reset inner
+            mode: background
+            return: true
+            shortcut_color: yellow
+            command: i3-msg gaps inner current set 10
+
+          - shortcut: k
+            title: Increase outer
+            mode: background
+            return: true
+            shortcut_color: cyan
+            command: i3-msg gaps outer current plus 5
+
+          - shortcut: j
+            title: Decrease outer
+            mode: background
+            return: true
+            shortcut_color: cyan
+            command: i3-msg gaps outer current minus 5
+
+          - shortcut: h
+            title: Reset outer
+            mode: background
+            return: true
+            shortcut_color: cyan
+            command: i3-msg gaps outer current set 0
+      - entries:
+          - shortcut: q
+            title: Quit
+            shortcut_color: green
+            return: false
