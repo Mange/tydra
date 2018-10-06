@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Use tydra to confirm something.
+#
+# Example:
+#   if tydra-confirm "Really kiss them?"; then
+#     # ...
+#   else
+#     # ...
+#   fi
+
+if [[ $1 == "--help" ]]; then
+  cat <<USAGE
+Usage: $0 [--default-yes] [MESSAGE]
+
+Use tydra to confirm something. Exits with 0 when Yes is picked and 1 when No
+is picked.
+
+Unless --default-yes is passed, cancelling will be regarded as "No".
+
+Options
+
+Example:
+  if tydra-confirm --default-yes "Really quit?"; then
+    # Code for "Yes" or cancel
+  else
+    # Code for "No"
+  fi
+USAGE
+  exit 0
+fi
+
+if ! hash tydra 2> /dev/null; then
+  echo "Cannot find tydra in your PATH" > /dev/stderr
+  exit 2
+fi
+
+default=1
+if [[ $1 == "--default-yes" ]]; then
+  shift
+  default=0
+fi
+
+if [[ $# -ge 1 ]]; then
+  message="$*"
+else
+  message="Do you want to proceed?"
+fi
+
+# Run tydra, where each option will exit with a specific number. Exit 0 if when
+# escape was picked and it and no selection happened.
+tydra <(cat <<YAML
+pages:
+  root:
+    title: "${message}"
+    footer: Cancel with Escape.
+    groups:
+      - entries:
+        - shortcut: y
+          title: Yes
+          mode: exec
+          command: exit 10
+          shortcut_color: green
+        - shortcut: n
+          title: No
+          mode: exec
+          shortcut_color: red
+          command: exit 20
+YAML
+)
+choice=$?
+
+case "$choice" in
+  10)
+    exit 0
+    ;;
+  20)
+    exit 1
+    ;;
+  *)
+    exit $default
+    ;;
+esac
