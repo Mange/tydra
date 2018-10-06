@@ -1,0 +1,95 @@
+# This is an example showing how to present bookmarks in tydra.
+#
+# The repeated "mode: background" causes the command to run without a
+# connection to this process or terminal, effectively detaching from the
+# terminal. The assumption being that `xdg-open` would spawn an X app. If you
+# are using your terminal for these bookmarks, the "exec" mode is a better
+# choice.
+# "mode: background" is not needed for most web browsers as they usually fork
+# or signal an already running browser to open a new tab, but a lot of file
+# manager do not fork like that and would keep the terminal open while you
+# browsed files.
+#
+pages:
+  root:
+    title: Bookmarks
+    settings:
+      layout: columns
+      shortcut_color: blue
+    groups:
+      - title: Favorites
+        entries:
+          - shortcut: 1
+            title: Google
+            command: xdg-open "https://google.com"
+            mode: background
+          - shortcut: 2
+            title: Youtube
+            command: xdg-open "https://youtube.com"
+            mode: background
+          - shortcut: 3
+            title: GitHub
+            command: xdg-open "https://github.com"
+            mode: background
+          - shortcut: 4
+            title: Downloads
+            command: xdg-open "$HOME/Downloads"
+            mode: background
+      - title: Others
+        settings:
+          shortcut_color: green
+        entries:
+          - shortcut: f
+            title: File system
+            return: fs
+          - shortcut: w
+            title: Web
+            return: web
+
+  fs:
+    title: File system bookmarks
+    groups:
+      - entries:
+          - shortcut: h
+            title: Home
+            command: xdg-open "$HOME"
+            mode: background
+          - shortcut: d
+            title: Downloads
+            command: xdg-open "$HOME/Downloads"
+            mode: background
+          - shortcut: D
+            title: Documents
+            command: xdg-open "$HOME/Documents"
+            mode: background
+
+  web:
+    title: Web bookmarks
+    groups:
+      - entries:
+          - shortcut: y
+            title: YouTube
+            command: xdg-open "https://youtube.com"
+            mode: background
+          - shortcut: g
+            title: Google
+            command: xdg-open "https://google.com"
+            mode: background
+          - shortcut: h
+            title: GitHub
+            command: xdg-open "https://github.com"
+            mode: background
+      - title: Reddit
+        entries:
+          - shortcut: f
+            title: Frontpage
+            command: xdg-open "https://reddit.com"
+            mode: background
+          - shortcut: u
+            title: r/unixporn
+            command: xdg-open "https://reddit.com/r/unixporn"
+            mode: background
+          - shortcut: m
+            title: r/linuxmemes
+            command: xdg-open "https://reddit.com/r/linuxmemes"
+            mode: background
