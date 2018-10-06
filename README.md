@@ -28,6 +28,8 @@ Some possible use-cases:
   * Bookmark programs with specific arguments, or websites.
   * Keep track of commonly used "recipes" and scripts.
 
+[![](doc/screenshot1.png)](doc/screenshot1.png)
+
 ## Usage
 
 See [doc/tydra.1.md](doc/tydra.1.md) for more information.
