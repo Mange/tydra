@@ -1,4 +1,4 @@
-use actions::{ActionFile, Entry, Return, RunMode};
+use actions::{ActionFile, Command, Entry, Return, RunMode};
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Fail)]
@@ -32,6 +32,12 @@ pub enum ValidationError {
         shortcut
     )]
     ExecWithReturn { page_name: String, shortcut: char },
+    #[fail(
+        display = "Entry cannot exec without a command (page {}, shortcut {}).",
+        page_name,
+        shortcut
+    )]
+    ExecWithoutCommand { page_name: String, shortcut: char },
 }
 
 pub fn validate(actions: &ActionFile, root_name: &str) -> Result<(), Vec<ValidationError>> {
@@ -102,6 +108,13 @@ fn validate_mode(errors: &mut Vec<ValidationError>, entry: &Entry, page_name: &s
                 });
             }
             Return::Quit => {}
+        }
+        match entry.command() {
+            Command::None => errors.push(ValidationError::ExecWithoutCommand {
+                page_name: page_name.to_owned(),
+                shortcut: entry.shortcut(),
+            }),
+            _ => {}
         }
     }
 }
@@ -227,13 +240,16 @@ pages:
       - entries:
           - shortcut: a
             title: This is fine
+            command: /bin/true
             mode: exec
           - shortcut: b
             title: This makes no sense
+            command: /bin/true
             mode: exec
             return: true
           - shortcut: c
             title: This neither
+            command: /bin/true
             mode: exec
             return: root"#,
         ).unwrap();
@@ -251,6 +267,46 @@ pages:
         assert_eq!(
             errors[1],
             ValidationError::ExecWithReturn {
+                page_name: "root".into(),
+                shortcut: 'c',
+            }
+        );
+    }
+
+    #[test]
+    fn it_validates_exec_with_no_command() {
+        let actions: ActionFile = serde_yaml::from_str(
+            r#"
+pages:
+  root:
+    groups:
+      - entries:
+          - shortcut: a
+            title: This is fine
+            mode: exec
+            command: /bin/true
+          - shortcut: b
+            title: This makes no sense (explicitly no command)
+            mode: exec
+            command: null
+          - shortcut: c
+            title: This neither (no command mentioned)
+            mode: exec"#,
+        ).unwrap();
+
+        let errors = validate(&actions, "root").unwrap_err();
+
+        assert_eq!(errors.len(), 2);
+        assert_eq!(
+            errors[0],
+            ValidationError::ExecWithoutCommand {
+                page_name: "root".into(),
+                shortcut: 'b',
+            }
+        );
+        assert_eq!(
+            errors[1],
+            ValidationError::ExecWithoutCommand {
                 page_name: "root".into(),
                 shortcut: 'c',
             }

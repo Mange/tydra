@@ -16,8 +16,7 @@ pub struct Entry {
     /// key on their keyboard, or 'C' to activate when user presses Shift+C keys.
     shortcut: char,
 
-    /// The Command to run when activating this entry. By default this will be a small no-op
-    /// Command that should always succeed.
+    /// The Command to run when activating this entry.
     #[serde(default)]
     command: Command,
 
@@ -36,9 +35,12 @@ pub struct Entry {
 }
 
 /// Represents something to execute when an Entry is selected.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields, untagged)]
 pub enum Command {
+    /// Run no command and instead only act on the "Return" setting.
+    None,
+
     /// A full shell script; will be run inside /bin/sh.
     ShellScript(String),
 
@@ -124,6 +126,10 @@ impl Entry {
         &self.return_to
     }
 
+    pub fn command(&self) -> &Command {
+        &self.command
+    }
+
     pub fn runner_mode(&self) -> RunMode {
         self.runner_mode
     }
@@ -149,12 +155,9 @@ impl<'a> From<&'a Entry> for Action {
 }
 
 impl Default for Command {
-    /// The default command should run a simple no-op command.
+    /// The default command should be not running anything.
     fn default() -> Command {
-        Command::Executable {
-            name: String::from("/bin/true"),
-            args: vec![],
-        }
+        Command::None
     }
 }
 
@@ -235,6 +238,7 @@ impl<'de> Deserialize<'de> for Return {
 impl fmt::Display for Command {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Command::None => write!(formatter, "(Nothing)"),
             Command::ShellScript(ref script) => script.fmt(formatter),
             Command::Executable { ref name, ref args } => {
                 if args.is_empty() {
@@ -259,6 +263,13 @@ mod tests {
         return_to: Return,
     }
 
+    #[derive(Debug, Deserialize, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    pub struct OnlyCommand {
+        #[serde(default)]
+        command: Command,
+    }
+
     #[test]
     fn it_displays_commands() {
         let script = Command::ShellScript(String::from("echo foo bar baz"));
@@ -270,10 +281,54 @@ mod tests {
             name: String::from("/bin/true"),
             args: vec![],
         };
+        let none = Command::None;
 
         assert_eq!(&format!("{}", script), "echo foo bar baz");
         assert_eq!(&format!("{}", executable), "ls [\"-l\", \"/\"]");
         assert_eq!(&format!("{}", no_args), "/bin/true");
+        assert_eq!(&format!("{}", none), "(Nothing)");
+    }
+
+    #[test]
+    fn it_deserializes_command() {
+        assert_eq!(
+            serde_yaml::from_str::<OnlyCommand>("command:").unwrap(),
+            OnlyCommand {
+                command: Command::None,
+            },
+        );
+
+        assert_eq!(
+            serde_yaml::from_str::<OnlyCommand>(r#"command: null"#).unwrap(),
+            OnlyCommand {
+                command: Command::None,
+            },
+        );
+
+        assert_eq!(
+            serde_yaml::from_str::<OnlyCommand>(r#"command: echo hello world"#).unwrap(),
+            OnlyCommand {
+                command: Command::ShellScript("echo hello world".into()),
+            },
+        );
+
+        assert_eq!(
+            serde_yaml::from_str::<OnlyCommand>(r#"command: "true""#).unwrap(),
+            OnlyCommand {
+                command: Command::ShellScript("true".into()),
+            },
+        );
+
+        assert_eq!(
+            serde_yaml::from_str::<OnlyCommand>(r#"command: {"name": "cat", "args": ["file"]}"#)
+                .unwrap(),
+            OnlyCommand {
+                command: Command::Executable {
+                    name: "cat".into(),
+                    args: vec![String::from("file")],
+                }
+            },
+        );
     }
 
     #[test]

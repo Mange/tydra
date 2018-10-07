@@ -65,7 +65,7 @@ pages:
           - shortcut: p
             shortcut_color: blue
             title: Packages
-            # command: /bin/true # Default when no command is given.
+            # command: # Default to running no command at all; use the "return" as an effect only.
             return: packages # Go to the packages page
           - shortcut: q
             title: Quit

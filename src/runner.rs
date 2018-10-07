@@ -6,30 +6,37 @@ use std::process;
 use std::process::{ExitStatus, Stdio};
 
 impl Command {
-    fn to_process_command(&self) -> process::Command {
+    fn to_process_command(&self) -> Option<process::Command> {
         match *self {
+            Command::None => None,
             Command::ShellScript(ref script) => {
                 let mut command = process::Command::new("/bin/sh");
                 command.arg("-c").arg(script);
-                command
+                Some(command)
             }
             Command::Executable { ref name, ref args } => {
                 let mut command = process::Command::new(name);
                 command.args(args);
-                command
+                Some(command)
             }
         }
     }
 }
 
-pub fn run_normal(command: &Command) -> Result<ExitStatus, Error> {
-    command.to_process_command().status().map_err(|e| e.into())
+pub fn run_normal(command: &Command) -> Option<Result<ExitStatus, Error>> {
+    command
+        .to_process_command()
+        .map(|mut command| command.status().map_err(|e| e.into()))
 }
 
 #[cfg(unix)]
 pub fn run_exec(command: &Command) -> Error {
     use std::os::unix::process::CommandExt;
-    command.to_process_command().exec().into()
+    command
+        .to_process_command()
+        .expect("Validations did not catch an exec with no command. Please report this as a bug!")
+        .exec()
+        .into()
 }
 
 #[cfg(not(unix))]
@@ -43,20 +50,21 @@ pub fn run_exec(command: &Command) -> Error {
 #[cfg(unix)]
 pub fn run_background(command: &Command) -> Result<(), Error> {
     use std::os::unix::process::CommandExt;
-    command
-        .to_process_command()
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .before_exec(|| {
-            // Make forked process into a new session leader; child will therefore not quit if
-            // parent quits.
-            nix::unistd::setsid().ok();
-            Ok(())
-        })
-        .spawn()
-        .map_err(|e| e.into())
-        .map(|_| ())
+    match command.to_process_command() {
+        Some(mut command) => command
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .before_exec(|| {
+                // Make forked process into a new session leader; child will therefore not quit if
+                // parent quits.
+                nix::unistd::setsid().ok();
+                Ok(())
+            }).spawn()
+            .map_err(|e| e.into())
+            .map(|_| ()),
+        None => Ok(()),
+    }
 }
 
 #[cfg(not(unix))]

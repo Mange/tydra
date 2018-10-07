@@ -258,7 +258,7 @@ fn run_normal(
     flush_terminal();
 
     match runner::run_normal(&command) {
-        Ok(exit_status) => {
+        Some(Ok(exit_status)) => {
             if error_on_failure && !exit_status.success() {
                 return Err(format_err!(
                     "Command exited with exit status {}: {}",
@@ -267,7 +267,8 @@ fn run_normal(
                 ));
             }
         }
-        Err(err) => return Err(err),
+        Some(Err(err)) => return Err(err),
+        None => {}
     }
 
     if wait {
