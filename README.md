@@ -34,15 +34,30 @@ Some possible use-cases:
 
 See [doc/tydra.1.md](doc/tydra.1.md) for more information.
 
+**Note:** If you install through the AUR, then this documentation is also
+availabe as `man` pages `tydra(1)` and `tydra-actions(5)`.
+
 ## Installing
 
-Packaging will be done on the 1.0.0 release. For now you can install using
-`cargo install`.
+<a href="https://repology.org/metapackage/tydra/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/tydra.svg" alt="Packaging status" align="right">
+</a>
+
+This package is available through Arch Linux's AUR repository as `tydra`. You
+may also compile it from source by downloading the source code and install it
+using `cargo` (Rust's build system and package manager):
+
+```bash
+cargo install
+```
 
 ### Completions
 
 This command comes with support for shell autocompletions for **bash**,
 **zsh**, and **fish**.
+
+**Note:** If you install through the AUR, then these completions are already installed
+for you automatically.
 
 You can generate and install these completions globally:
 
