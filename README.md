@@ -4,7 +4,8 @@
 
 [![Build Status][ci-badge]][ci] [![codecov][codecov-badge]][codecov]
 
-Tydra is a menu-based shortcut runner based on the Hydra system in Emacs.
+Tydra is a menu-based shortcut runner based on the great [Hydra system](https://github.com/abo-abo/hydra) 
+for Emacs by Oleh Krehel.
 
 It works by reading an "action file" that defines the full menu. Each menu has
 several pages, where one page at a time can be shown. Each page has one or more
