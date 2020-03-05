@@ -1,6 +1,6 @@
 extern crate nix;
 
-use actions::Command;
+use crate::actions::Command;
 use failure::Error;
 use std::process;
 use std::process::{ExitStatus, Stdio};
@@ -48,14 +48,14 @@ pub fn run_exec(command: &Command) -> Error {
 }
 
 #[cfg(unix)]
-pub fn run_background(command: &Command) -> Result<(), Error> {
+pub unsafe fn run_background(command: &Command) -> Result<(), Error> {
     use std::os::unix::process::CommandExt;
     match command.to_process_command() {
         Some(mut command) => command
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .before_exec(|| {
+            .pre_exec(|| {
                 // Make forked process into a new session leader; child will therefore not quit if
                 // parent quits.
                 nix::unistd::setsid().ok();
