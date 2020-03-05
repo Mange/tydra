@@ -3,6 +3,7 @@ name = "tydra"
 description = "Shortcut menu-based task runner, inspired by Emacs Hydra"
 version = "1.0.0"
 authors = ["Magnus Bergmark <magnus.bergmark@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 serde = "1.0.104"
