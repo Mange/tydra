@@ -219,7 +219,7 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
             Action::RunExec { command } => return Err(run_exec(terminal, command)),
 
             // Run command in background and immediately return to the menu again.
-            Action::RunBackground { command, return_to } => {
+            Action::RunBackground { command, return_to } => unsafe {
                 runner::run_background(&command)?;
                 return_to
             }
