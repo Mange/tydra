@@ -1,9 +1,3 @@
-extern crate nix;
-extern crate serde;
-extern crate serde_yaml;
-extern crate termion;
-extern crate tui;
-
 #[macro_use]
 extern crate failure;
 
@@ -13,7 +7,6 @@ extern crate failure_derive;
 #[macro_use]
 extern crate serde_derive;
 
-#[macro_use]
 extern crate structopt;
 
 mod actions;
