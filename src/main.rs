@@ -30,7 +30,7 @@ use tui::Terminal;
 type Term = Terminal<AlternateScreenBackend>;
 
 #[derive(Debug, StructOpt)]
-#[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
+#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 pub struct AppOptions {
     /// Read menu contents from this file.
     #[structopt(
@@ -55,7 +55,7 @@ pub struct AppOptions {
     #[structopt(
         long = "generate-completions",
         value_name = "SHELL",
-        raw(possible_values = "&Shell::variants()")
+        possible_values = &Shell::variants()
     )]
     generate_completions: Option<Shell>,
 }
