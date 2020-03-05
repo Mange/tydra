@@ -1,6 +1,6 @@
 extern crate nix;
 
-use actions::Command;
+use crate::actions::Command;
 use failure::Error;
 use std::process;
 use std::process::{ExitStatus, Stdio};

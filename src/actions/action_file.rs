@@ -1,6 +1,6 @@
 use super::{validator, Page, Settings, SettingsAccumulator, ValidationError};
 use std::collections::BTreeMap;
-use AppOptions;
+use crate::AppOptions;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]

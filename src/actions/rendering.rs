@@ -1,8 +1,8 @@
-use actions::{Entry, Group, Layout, Page, SettingsAccumulator};
+use crate::actions::{Entry, Group, Layout, Page, SettingsAccumulator};
 use failure::Error;
 use tui::layout::{self, Direction, Rect, Size};
 use tui::widgets::{Paragraph, Widget};
-use Term;
+use crate::Term;
 
 pub fn render(term: &mut Term, page: &Page, settings: &SettingsAccumulator) -> Result<(), Error> {
     match settings.layout() {
