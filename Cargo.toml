@@ -6,6 +6,7 @@ authors = ["Magnus Bergmark <magnus.bergmark@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+quote = "=1.0.2"
 serde = "1.0.104"
 serde_yaml = "0.8.11"
 serde_derive = "1.0.104"
