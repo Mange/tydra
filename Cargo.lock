@@ -336,7 +336,7 @@ dependencies = [
 
 [[package]]
 name = "tydra"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",

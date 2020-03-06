@@ -1,4 +1,4 @@
-% TYDRA-ACTIONS(5) | Version 1.0.1
+% TYDRA-ACTIONS(5) | Version 1.0.2
 % Magnus Bergmark <magnus.bergmark@gmail.com>
 % March 2020
 

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.2] - 2020-03-06
+
 ### Fixed
 
 * The `--generate-completions` option mistakenly still required a filename to
@@ -38,6 +40,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 Initial release.
 
-[Unreleased]: https://github.com/Mange/tydra/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Mange/tydra/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/Mange/tydra/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Mange/tydra/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Mange/tydra/releases/tag/v1.0.0
