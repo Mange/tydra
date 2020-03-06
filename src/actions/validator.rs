@@ -1,4 +1,4 @@
-use actions::{ActionFile, Command, Entry, Return, RunMode};
+use crate::actions::{ActionFile, Command, Entry, Return, RunMode};
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Fail)]

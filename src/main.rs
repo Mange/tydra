@@ -1,9 +1,3 @@
-extern crate nix;
-extern crate serde;
-extern crate serde_yaml;
-extern crate termion;
-extern crate tui;
-
 #[macro_use]
 extern crate failure;
 
@@ -13,7 +7,6 @@ extern crate failure_derive;
 #[macro_use]
 extern crate serde_derive;
 
-#[macro_use]
 extern crate structopt;
 
 mod actions;
@@ -30,7 +23,7 @@ use tui::Terminal;
 type Term = Terminal<AlternateScreenBackend>;
 
 #[derive(Debug, StructOpt)]
-#[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
+#[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 pub struct AppOptions {
     /// Read menu contents from this file.
     #[structopt(
@@ -55,7 +48,7 @@ pub struct AppOptions {
     #[structopt(
         long = "generate-completions",
         value_name = "SHELL",
-        raw(possible_values = "&Shell::variants()")
+        possible_values = &Shell::variants()
     )]
     generate_completions: Option<Shell>,
 }
@@ -226,7 +219,7 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
             Action::RunExec { command } => return Err(run_exec(terminal, command)),
 
             // Run command in background and immediately return to the menu again.
-            Action::RunBackground { command, return_to } => {
+            Action::RunBackground { command, return_to } => unsafe {
                 runner::run_background(&command)?;
                 return_to
             }
