@@ -9,8 +9,9 @@ tydra-actions -- Tydra action file reference.
 # SYNOPSIS
 
 Tydra action files are stored in YAML files. It is recommended that you read up
-on YAML so you understand the syntax. Particular areas that might give you
-issues unless you understand them include:
+on YAML so you understand the syntax, such as "[Learn YAML in five minutes](https://www.codeproject.com/Articles/1214409/Learn-YAML-in-five-minutes)". 
+
+Particular areas that might give you issues unless you understand them include:
 
   * Some strings needing quotes, while others do not.
   * Lists of maps and indentation rules for them.
