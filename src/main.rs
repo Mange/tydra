@@ -26,10 +26,7 @@ type Term = Terminal<AlternateScreenBackend>;
 #[structopt(setting = structopt::clap::AppSettings::ColoredHelp)]
 pub struct AppOptions {
     /// Read menu contents from this file.
-    #[structopt(
-        value_name = "ACTION_FILE",
-        required_unless = "generate_completions"
-    )]
+    #[structopt(value_name = "ACTION_FILE", required_unless = "generate-completions")]
     filename: Option<String>,
 
     /// Start on this page.
@@ -222,7 +219,7 @@ fn run_menu(actions: &ActionFile, options: &AppOptions) -> Result<(), Error> {
             Action::RunBackground { command, return_to } => unsafe {
                 runner::run_background(&command)?;
                 return_to
-            }
+            },
         };
 
         // Decide on which page to render now.
