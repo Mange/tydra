@@ -4,8 +4,8 @@
 
 [![Build Status][ci-badge]][ci] [![codecov][codecov-badge]][codecov]
 
-Tydra is a menu-based shortcut runner based on the great [Hydra system](https://github.com/abo-abo/hydra) 
-for Emacs by Oleh Krehel.
+Tydra is a menu-based shortcut runner based on the great [Hydra
+system](https://github.com/abo-abo/hydra) for Emacs by Oleh Krehel.
 
 It works by reading an "action file" that defines the full menu. Each menu has
 several pages, where one page at a time can be shown. Each page has one or more
@@ -55,12 +55,12 @@ cargo install
 ### Completions
 
 This command comes with support for shell autocompletions for **bash**,
-**zsh**, and **fish**.
+**zsh**, **fish**, **powershell**, and **elvish**.
 
-**Note:** If you install through the AUR, then these completions are already installed
-for you automatically.
+**Note:** If you install through the AUR, then most of these completions are
+already installed for you automatically.
 
-You can generate and install these completions globally:
+You can generate and install the common completions globally:
 
 ```bash
 tydra --generate-completions zsh > _tydra
