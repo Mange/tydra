@@ -1,6 +1,6 @@
-% TYDRA(1) | Version 0.1.0
+% TYDRA(1) | Version 1.0.0
 % Magnus Bergmark <magnus.bergmark@gmail.com>
-% September 2018
+% March 2020
 
 # NAME
 
@@ -9,9 +9,10 @@ tydra -- Shortcut menu-based task runner, inspired by Emacs Hydra
 # SYNOPSIS
 
 | **tydra** \[*-e*|*\--ignore-exit-status*\] \[*-p NAME*|*\--page NAME*\] <*ACTION_FILE*>
-| **tydra** \[*-p NAME*|*\--page NAME*\] \--validate *ACTION_FILE*
-| **tydra** \[*OPTIONS*\] \--help
-| **tydra** \[*OPTIONS*\] \--version
+| **tydra** \[*-p NAME*|*\--page NAME*\] *\--validate* <*ACTION_FILE*>
+| **tydra** *\--help*
+| **tydra** *\--version*
+| **tydra** *\--generate-completions* <*SHELL*>
 
 # DESCRIPTION
 
@@ -63,6 +64,12 @@ file is valid. If it is not valid, all validation errors will be shown on
 
 : Start on the page with the provided *NAME*. Defaults to *root* if not
 specified. Note that **\--validate** will take this into account too.
+
+**\--generate-completions** *SHELL*
+
+: Generate a completion script for the given shell, print it to standard out,
+and exit. This will ignore any other options. You can find a list of supported
+shells in the **\--help** output.
 
 
 # SEE ALSO
