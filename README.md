@@ -1,8 +1,10 @@
+| | |
+|---|---|
+| ⚠️ | **NOTE:** This repository is now marked as read-only and has been officially abandoned due to lack of use and motivation to keep it going.  |
+
 # tydra
 
 > Terminal Hydra
-
-[![Build Status][ci-badge]][ci] [![codecov][codecov-badge]][codecov]
 
 Tydra is a menu-based shortcut runner based on the great [Hydra
 system](https://github.com/abo-abo/hydra) for Emacs by Oleh Krehel.
@@ -85,8 +87,3 @@ If you have a local source for completions, redirect the output of the
 Copyright 2018 Magnus Bergmark <magnus.bergmark@gmail.com>
 
 Code is released under MIT license, see `LICENSE`.
-
-[ci-badge]: https://travis-ci.org/Mange/tydra.svg?branch=master
-[ci]: https://travis-ci.org/Mange/tydra
-[codecov]: https://codecov.io/gh/Mange/tydra
-[codecov-badge]: https://codecov.io/gh/Mange/tydra/branch/master/graph/badge.svg
